@@ -5,7 +5,7 @@ from pydantic import BaseModel
 app = FastAPI()
 
 # Pfad zur SQLite-Datei (anpassen)
-DB_PATH = "C:\Users\kunzj\IdeaProjects\Chatbot\db\alien/alien.sqlite"
+DB_PATH = r"C:\Users\kunzj\IdeaProjects\Chatbot\db\alien\alien.sqlite"
 
 class QueryRequest(BaseModel):
     user_question: str
