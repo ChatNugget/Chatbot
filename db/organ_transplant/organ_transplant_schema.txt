@@ -1,0 +1,319 @@
+CREATE TABLE "administrative_and_review" (
+  "adm_rev_registry" text NOT NULL,
+  "exp_rev_stat_val" text,
+  "exp_rev_notes" text,
+  "ec_appro_val" text,
+  "reg_comp_val" text,
+  "docu_stat_val" text,
+  "cons_stat_val" text,
+  "fin_clear_val" text,
+  "ins_appro_val" text,
+  "coord_ref" text,
+  "surge_ref" text,
+  "tx_cen_code" text,
+  "rec_cen_code" text,
+  "lab_ref" text,
+  "adm_don_ref" text,
+  "adm_rec_ref" text,
+  CONSTRAINT "administrative_and_review_pkey" PRIMARY KEY ("adm_rev_registry"),
+  CONSTRAINT "administrative_and_review_adm_don_ref_fkey" FOREIGN KEY ("adm_don_ref") REFERENCES "demographics" ("contrib_registry"),
+  CONSTRAINT "administrative_and_review_adm_rec_ref_fkey" FOREIGN KEY ("adm_rec_ref") REFERENCES "recipients_demographics" ("recip_registry"),
+  CONSTRAINT "administrative_and_review_adm_rev_registry_fkey" FOREIGN KEY ("adm_rev_registry") REFERENCES "transplant_matching" ("match_rec_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM administrative_and_review LIMIT 3; 
+ adm_rev_registry exp_rev_stat_val       exp_rev_notes ec_appro_val reg_comp_val docu_stat_val cons_stat_val fin_clear_val ins_appro_val coord_ref surge_ref tx_cen_code rec_cen_code lab_ref adm_don_ref adm_rec_ref 
+        TM113504         RejECted    accEptABlE mAtCH         None under review    InCoMpLeTe      OBTAINED      rejected      APPROVED     C7827     S8696       TC594        RC386    L445     D812743     R947153 
+        TM533084         rejected                None     approved Under Review      CoMpLeTe      Obtained      REJECTED      APPROVeD     C7211     S1636       TC810        RC832    L137     D120007     R159571 
+        TM464099         APPROVED Requires discussion     approved    CoMpLiAnT      COMPLETE       Refused      Approved       pending     C8374     S3232       TC698        RC615    L412     D120007     R159571  
+ */
+
+CREATE TABLE "allocation_details" (
+  "allc_match_registry" text NOT NULL,
+  "allc_seq_num" integer(16),
+  "allc_region" text,
+  "allc_pol_vers" text,
+  "donor_ref_reg" text,
+  "recip_ref_reg" text,
+  CONSTRAINT "allocation_details_pkey" PRIMARY KEY ("allc_match_registry"),
+  CONSTRAINT "allocation_details_allc_match_registry_fkey" FOREIGN KEY ("allc_match_registry") REFERENCES "transplant_matching" ("match_rec_registry"),
+  CONSTRAINT "allocation_details_donor_ref_reg_fkey" FOREIGN KEY ("donor_ref_reg") REFERENCES "demographics" ("contrib_registry"),
+  CONSTRAINT "allocation_details_recip_ref_reg_fkey" FOREIGN KEY ("recip_ref_reg") REFERENCES "recipients_demographics" ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM allocation_details LIMIT 3; 
+ allc_match_registry allc_seq_num allc_region allc_pol_vers donor_ref_reg recip_ref_reg 
+           TM113504           24    Region_9          v2.7       D812743       R947153 
+           TM464099           61    Region_9          v3.8       D120007       R159571 
+           TM409527           31    Region_5          v1.9       D812743       R372719  
+ */
+
+CREATE TABLE "clinical" (
+  "clin_recip_registry" text NOT NULL,
+  "diag_detail" text,
+  "wait_time" text,
+  "med_urgency" text,
+  "prev_tx_count" text,
+  "dial_status" text,
+  "dial_duration" text,
+  "comorbid_detail" text,
+  CONSTRAINT "clinical_pkey" PRIMARY KEY ("clin_recip_registry"),
+  CONSTRAINT "clinical_clin_recip_registry_fkey" FOREIGN KEY ("clin_recip_registry") REFERENCES "recipients_demographics" ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM clinical LIMIT 3; 
+ clin_recip_registry                                   diag_detail wait_time med_urgency                                   prev_tx_count                                      dial_status dial_duration                     comorbid_detail 
+            R947153     End-stage disease, urgent transplant need  104 days   Status 1B 2 previous transplants, high-risk re-transplant                                             None     45 months Hypertension,Heart Disease,Diabetes 
+            R159571 Congenital condition, lifelong treatment need  837 days   Status 1A  1 previous transplant, re-transplant candidate Hemodialysis, standard renal replacement therapy     29 months                       Diabetes,COPD 
+            R372719     End-stage disease, urgent transplant need  529 days           2  1 previous transplant, re-transplant candidate Hemodialysis, standard renal replacement therapy      6 months                            Diabetes  
+ */
+
+CREATE TABLE "compatibility_metrics" (
+  "match_comp_registry" text NOT NULL,
+  "hla_mis_count" integer(64),
+  "blood_compat" text,
+  "distance" text,
+  "exp_isch_time" text,
+  "exp_time" text,
+  "cost_est" text,
+  "donor_ref_reg" text,
+  "recip_ref_reg" text,
+  "compatscores" text,
+  CONSTRAINT "compatibility_metrics_pkey" PRIMARY KEY ("match_comp_registry"),
+  CONSTRAINT "compatibility_metrics_donor_ref_reg_fkey" FOREIGN KEY ("donor_ref_reg") REFERENCES "demographics" ("contrib_registry"),
+  CONSTRAINT "compatibility_metrics_match_comp_registry_fkey" FOREIGN KEY ("match_comp_registry") REFERENCES "transplant_matching" ("match_rec_registry"),
+  CONSTRAINT "compatibility_metrics_recip_ref_reg_fkey" FOREIGN KEY ("recip_ref_reg") REFERENCES "recipients_demographics" ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM compatibility_metrics LIMIT 3; 
+ match_comp_registry hla_mis_count blood_compat   distance        exp_isch_time              exp_time    cost_est donor_ref_reg recip_ref_reg                                                  compatscores 
+           TM113504             3 incompatible 1815 miles 539 minutes ischemia 142 minutes transport  US$5210.53       D812743       R947153 {"Age_Score": 0.327, "Hla_Score": 0.522, "Size_Score": 0.228} 
+           TM533084             5 IncOmPATIblE  673 miles 415 minutes ischemia 141 minutes transport US$47952.51       D120007       R159571  {"Age_Score": 0.89, "Hla_Score": 0.024, "Size_Score": 0.928} 
+           TM464099             2         None 1524 miles 381 minutes ischemia 176 minutes transport US$32836.57       D120007       R159571 {"Age_Score": 0.508, "Hla_Score": 0.234, "Size_Score": 0.911}  
+ */
+
+CREATE TABLE "data_source_and_quality" (
+  "q_match_registry" text NOT NULL,
+  "data_src_val" text,
+  "dq_score_val" integer(24),
+  "dc_score_val" integer(24),
+  "verif_stat_val" text,
+  "last_up_ts" text,
+  "next_rev_dt" text,
+  "q_don_ref" text,
+  "q_rec_ref" text,
+  CONSTRAINT "data_source_and_quality_pkey" PRIMARY KEY ("q_match_registry"),
+  CONSTRAINT "data_source_and_quality_q_don_ref_fkey" FOREIGN KEY ("q_don_ref") REFERENCES "demographics" ("contrib_registry"),
+  CONSTRAINT "data_source_and_quality_q_match_registry_fkey" FOREIGN KEY ("q_match_registry") REFERENCES "transplant_matching" ("match_rec_registry"),
+  CONSTRAINT "data_source_and_quality_q_rec_ref_fkey" FOREIGN KEY ("q_rec_ref") REFERENCES "recipients_demographics" ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM data_source_and_quality LIMIT 3; 
+ q_match_registry    data_src_val dq_score_val dc_score_val verif_stat_val last_up_ts next_rev_dt q_don_ref q_rec_ref 
+        TM113504            uNoS        0.966         0.78       verified 2025/02/19  04/03/2025   D812743   R947153 
+        TM533084    Manual Entry        0.556        0.438         FAILED 2025/02/19  27/02/2025   D120007   R159571 
+        TM464099 cENTER daTabaSE        0.196         0.43       verified 2025/02/19  17/03/2025   D120007   R159571  
+ */
+
+CREATE TABLE "demographics" (
+  "contrib_registry" text NOT NULL,
+  "age_count" text,
+  "blood_class" text,
+  "nation_ref" text,
+  "physicalstats" text,
+  CONSTRAINT "demographics_pkey" PRIMARY KEY ("contrib_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM demographics LIMIT 3; 
+ contrib_registry                   age_count                      blood_class  nation_ref                                                                                        physicalstats 
+         D812743      57 years, mature donor B- rare type (specific matching)  Seychelles {"Bmi_Value": 31.6, "Ethnicity": "Caucasian", "Height_Cm": 156, "Weight_Kg": 77, "Gender_Type": "M"} 
+         D120007      51 years, mature donor           AB- rare negative type El Salvador {"Bmi_Value": 23.9, "Ethnicity": "Caucasian", "Height_Cm": 183, "Weight_Kg": 80, "Gender_Type": "M"} 
+         D685621 29 years, young adult donor        B+ moderate compatibility        Oman     {"Bmi_Value": 21.4, "Ethnicity": "Other", "Height_Cm": 159, "Weight_Kg": 54, "Gender_Type": "M"}  
+ */
+
+CREATE TABLE "function_and_recovery" (
+  "recov_don_registry" text NOT NULL,
+  "don_crtn_val" text,
+  "don_gfr_val" text,
+  "don_co_desc" text,
+  "org_recov_dt" text,
+  "org_presv_meth" text,
+  "org_isch_time" text,
+  "organfuncassess" text,
+  CONSTRAINT "function_and_recovery_pkey" PRIMARY KEY ("recov_don_registry"),
+  CONSTRAINT "function_and_recovery_recov_don_registry_fkey" FOREIGN KEY ("recov_don_registry") REFERENCES "demographics" ("contrib_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM function_and_recovery LIMIT 3; 
+ recov_don_registry don_crtn_val         don_gfr_val                                         don_co_desc   org_recov_dt                                          org_presv_meth org_isch_time                                                        organfuncassess 
+           D126113      1 mg/dL    73 mL/min/1.73m² Anoxia, oxygen deprivation may affect organ quality 02-18-2025 HKT       Static cold storage, standard preservation method      659 mins         {"Liv_Func": "Mild", "Card_Func": "Mild", "Pulm_Func": "Mild"} 
+           D812743   1.62 mg/dL 103.4 mL/min/1.73m² Anoxia, oxygen deprivation may affect organ quality 02-18-2025 HKT Normothermic perfusion, advanced preservation technique      702 mins {"Liv_Func": "Normal", "Card_Func": "Moderate", "Pulm_Func": "Severe"} 
+           D120007   1.08 mg/dL  78.5 mL/min/1.73m²      Trauma, sudden death preserves organ viability 02-18-2025 HKT Normothermic perfusion, advanced preservation technique      331 mins     {"Liv_Func": "Mild", "Card_Func": "Moderate", "Pulm_Func": "Mild"}  
+ */
+
+CREATE TABLE "hla_info" (
+  "immu_don_registry" text NOT NULL,
+  "hla_a_val" integer(24),
+  "hla_b_val" integer(24),
+  "hla_dr_val" integer(24),
+  "hla_dq_val" integer(24),
+  CONSTRAINT "hla_info_pkey" PRIMARY KEY ("immu_don_registry"),
+  CONSTRAINT "hla_info_immu_don_registry_fkey" FOREIGN KEY ("immu_don_registry") REFERENCES "demographics" ("contrib_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM hla_info LIMIT 3; 
+ immu_don_registry hla_a_val hla_b_val hla_dr_val hla_dq_val 
+          D812743        92        11         21          4 
+          D120007        97        52         71         56 
+          D887241         7        36         81         69  
+ */
+
+CREATE TABLE "logistics" (
+  "log_match_registry" text NOT NULL,
+  "trans_method" text,
+  "don_ref_reg" text,
+  "rec_ref_reg" text,
+  CONSTRAINT "logistics_pkey" PRIMARY KEY ("log_match_registry"),
+  CONSTRAINT "logistics_don_ref_reg_fkey" FOREIGN KEY ("don_ref_reg") REFERENCES "demographics" ("contrib_registry"),
+  CONSTRAINT "logistics_log_match_registry_fkey" FOREIGN KEY ("log_match_registry") REFERENCES "transplant_matching" ("match_rec_registry"),
+  CONSTRAINT "logistics_rec_ref_reg_fkey" FOREIGN KEY ("rec_ref_reg") REFERENCES "recipients_demographics" ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM logistics LIMIT 3; 
+ log_match_registry trans_method don_ref_reg rec_ref_reg 
+          TM113504       Ground     D812743     R947153 
+          TM533084       Ground     D120007     R159571 
+          TM464099  Charter Air     D120007     R159571  
+ */
+
+CREATE TABLE "medical_history" (
+  "contrib_med_registry" text NOT NULL,
+  "med_history" text,
+  "smk_cond" text,
+  "alc_cond" text,
+  "drug_cond" text,
+  "viralstatinfo" text,
+  CONSTRAINT "medical_history_pkey" PRIMARY KEY ("contrib_med_registry"),
+  CONSTRAINT "medical_history_contrib_med_registry_fkey" FOREIGN KEY ("contrib_med_registry") REFERENCES "demographics" ("contrib_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM medical_history LIMIT 3; 
+ contrib_med_registry   med_history                            smk_cond                                      alc_cond                         drug_cond                                                                                                                 viralstatinfo 
+             D812743          None  Former smoker, recovery documented           Moderate use, liver function normal Current use, high risk assessment {"Cmv_State": "Negative", "Ebv_State": "Negative", "Hbv_State": "Negative", "Hcv_State": "Negative", "Hiv_State": "Negative"} 
+             D120007          None  Former smoker, recovery documented                                          None Current use, high risk assessment {"Cmv_State": "Negative", "Ebv_State": "Positive", "Hbv_State": "Negative", "Hcv_State": "Negative", "Hiv_State": "Negative"} 
+             D685621 Heart Disease Current smoker, requires assessment Heavy use, liver function requires evaluation                              None {"Cmv_State": "Negative", "Ebv_State": "Negative", "Hbv_State": "Positive", "Hcv_State": "Positive", "Hiv_State": "Negative"}  
+ */
+
+CREATE TABLE "recipients_demographics" (
+  "recip_registry" text NOT NULL,
+  "age_count" integer(16),
+  "gend_type" text,
+  "blood_class" text,
+  "ht_cm" integer(16),
+  "wt_kg" integer(64),
+  "bmi_val" integer(24),
+  "ethn_grp" text,
+  CONSTRAINT "recipients_demographics_pkey" PRIMARY KEY ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM recipients_demographics LIMIT 3; 
+ recip_registry age_count gend_type blood_class ht_cm wt_kg bmi_val ethn_grp 
+       R947153        57         M         AB+   171    55    18.8  African 
+       R159571        23         M          O+   153   119    50.8  African 
+       R372719        39         F          O-   158   119    47.7  African  
+ */
+
+CREATE TABLE "recipients_immunology" (
+  "immu_recip_registry" text NOT NULL,
+  "pra_score" integer(24),
+  "dsa_state" text,
+  "cross_result" text,
+  "cmv_state" text,
+  "ebv_state" text,
+  "func_status" text,
+  "life_support" text,
+  "hlaprofile" text,
+  CONSTRAINT "recipients_immunology_pkey" PRIMARY KEY ("immu_recip_registry"),
+  CONSTRAINT "recipients_immunology_immu_recip_registry_fkey" FOREIGN KEY ("immu_recip_registry") REFERENCES "recipients_demographics" ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM recipients_immunology LIMIT 3; 
+ immu_recip_registry pra_score dsa_state cross_result cmv_state ebv_state         func_status life_support                                                             hlaprofile 
+            R159571        61  Positive     Positive  Positive  Negative Moderate Impairment          VAD {"Hla_A_Val": 28, "Hla_B_Val": 64, "Hla_Dq_Val": 52, "Hla_Dr_Val": 82} 
+            R372719        93  Negative      Pending  Negative  Negative     Mild Impairment         None  {"Hla_A_Val": 25, "Hla_B_Val": 37, "Hla_Dq_Val": 11, "Hla_Dr_Val": 9} 
+            R279115         7  Negative      Pending  Negative  Positive   Severe Impairment         ECMO {"Hla_A_Val": 24, "Hla_B_Val": 42, "Hla_Dq_Val": 55, "Hla_Dr_Val": 63}  
+ */
+
+CREATE TABLE "risk_evaluation" (
+  "risk_eval_registry" text NOT NULL,
+  "org_qual_val" integer(24),
+  "egs_val" integer(24),
+  "eps_val" integer(24),
+  "surg_cmpl_val" integer(24),
+  "surg_risk_val" integer(24),
+  "res_avail_val" integer(24),
+  "cntr_exp_val" integer(24),
+  "cntr_vol_val" integer(24),
+  "cntr_out_val" integer(24),
+  "qol_val" integer(24),
+  "cost_eff_val" integer(24),
+  "alloc_prio_val" integer(24),
+  "donor_ref_reg" text,
+  "recip_ref_reg" text,
+  "riskmetrics" text,
+  "cost_qaly" text,
+  "resource_consumption" text,
+  "staff" text,
+  CONSTRAINT "risk_evaluation_pkey" PRIMARY KEY ("risk_eval_registry"),
+  CONSTRAINT "risk_evaluation_donor_ref_reg_fkey" FOREIGN KEY ("donor_ref_reg") REFERENCES "demographics" ("contrib_registry"),
+  CONSTRAINT "risk_evaluation_recip_ref_reg_fkey" FOREIGN KEY ("recip_ref_reg") REFERENCES "recipients_demographics" ("recip_registry"),
+  CONSTRAINT "risk_evaluation_risk_eval_registry_fkey" FOREIGN KEY ("risk_eval_registry") REFERENCES "transplant_matching" ("match_rec_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM risk_evaluation LIMIT 3; 
+ risk_eval_registry org_qual_val egs_val eps_val surg_cmpl_val surg_risk_val res_avail_val cntr_exp_val cntr_vol_val cntr_out_val qol_val cost_eff_val alloc_prio_val donor_ref_reg recip_ref_reg                                                                                                                      riskmetrics      cost_qaly         resource_consumption                       staff 
+          TM113504        0.964   0.114   0.352         0.747          None         0.567        0.215        0.919        0.077   0.185        0.037          0.917       D812743       R947153  {"Cmpl_Risk": 0.349, "Mort_Risk": 0.674, "Immun_Risk": 0.607, "Infect_Risk": 0.48, "Reject_Risk": 0.527, "Readmit_Risk": 0.747} 53700 USD/QALY 11.339999437332153 units/day  15.46999979019165 hrs/case 
+          TM533084        0.709    0.04   0.033         0.379          0.33         0.832        0.814        0.056        0.665   0.523        0.015          0.798       D120007       R159571  {"Cmpl_Risk": 0.909, "Mort_Risk": 0.536, "Immun_Risk": 0.82, "Infect_Risk": 0.668, "Reject_Risk": 0.461, "Readmit_Risk": 0.491} 51500 USD/QALY 16.640000343322754 units/day 11.790000081062317 hrs/case 
+          TM464099        0.971   0.079   0.158         0.767         0.321         0.474        0.464        0.969        0.948   0.702        0.251            0.6       D120007       R159571 {"Cmpl_Risk": 0.177, "Mort_Risk": 0.012, "Immun_Risk": 0.282, "Infect_Risk": 0.377, "Reject_Risk": 0.546, "Readmit_Risk": 0.669} 75100 USD/QALY  9.480000138282776 units/day 15.670000195503235 hrs/case  
+ */
+
+CREATE TABLE "transplant_matching" (
+  "match_rec_registry" text NOT NULL,
+  "created_ts" text,
+  "donor_ref_reg" text,
+  "recip_ref_reg" text,
+  "org_spec" text,
+  "match_status" text,
+  "score_val" integer(24),
+  "level_val" text,
+  "alg_vers" text,
+  "run_registry" text,
+  "match_ts" text,
+  "dur_sec" integer(64),
+  "conf_val" integer(24),
+  "dss_val" integer(24),
+  CONSTRAINT "transplant_matching_pkey" PRIMARY KEY ("match_rec_registry"),
+  CONSTRAINT "transplant_matching_donor_ref_reg_fkey" FOREIGN KEY ("donor_ref_reg") REFERENCES "demographics" ("contrib_registry"),
+  CONSTRAINT "transplant_matching_recip_ref_reg_fkey" FOREIGN KEY ("recip_ref_reg") REFERENCES "recipients_demographics" ("recip_registry")
+) 
+ /* 
+ 3 example rows: 
+ SELECT * FROM transplant_matching LIMIT 3; 
+ match_rec_registry                 created_ts donor_ref_reg recip_ref_reg org_spec match_status score_val  level_val alg_vers run_registry            match_ts dur_sec conf_val dss_val 
+          TM113504 2025-02-19 08:31:22.330375       D812743       R947153     Lung       Failed     0.005   Marginal     v2.5     MR324767 2025.02.19 08:31:22     128    0.056    0.68 
+          TM533084 2025-02-19 08:31:22.330375       D120007       R159571   Kidney    Completed     0.827    Optimal     v2.1     MR667283 2025.02.19 08:31:22       2      0.2   0.699 
+          TM464099 2025-02-19 08:31:22.330375       D120007       R159571   Kidney    Completed     0.068 Acceptable     v3.2     MR644157 2025.02.19 08:31:22      78      0.8   0.976  
+ */
