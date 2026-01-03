@@ -70,7 +70,7 @@ class QueryRequest(BaseModel):
 # -----------------------------
 def generate_sql_from_question(question: str) -> str:
     # TEMPORÄR: harte Zuordnung für Tests
-    return "SELECT * FROM alien_sightings"
+    return "SELECT * FROM signals"
 
 # -----------------------------
 # Endpoint
