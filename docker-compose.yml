@@ -15,7 +15,7 @@ services:
       # Ollama läuft in deinem Compose, daher service-name "ollama"
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=llama3.1:latest
-
+      - TIMEOUT_S=600
       # wo die DBs im Container liegen
       - DBS_ROOT=/data
 

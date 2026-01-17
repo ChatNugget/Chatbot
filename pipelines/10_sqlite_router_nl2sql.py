@@ -39,6 +39,7 @@ class Pipeline:
                 "SCHEMA_CACHE_SECONDS": int(os.getenv("SCHEMA_CACHE_SECONDS", "600")),
                 "MAX_ROWS_DEFAULT": int(os.getenv("MAX_ROWS_DEFAULT", "50")),
                 "MAX_ROWS_HARD": int(os.getenv("MAX_ROWS_HARD", "500")),
+                "TIMEOUT_S": int(os.getenv("TIMEOUT_S", "120"))
             }
         )
 
