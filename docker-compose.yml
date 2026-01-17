@@ -1,0 +1,55 @@
+services:
+
+  pipelines:
+    image: ghcr.io/open-webui/pipelines:main
+    container_name: pipelines
+    depends_on:
+      - ollama
+    ports:
+      - "9099:9099"
+    volumes:
+      - ./pipelines:/app/pipelines
+      # gleiche DBs wie bei sqlite-tools, read-only
+      - ./dbs:/data:ro
+    environment:
+      # Ollama läuft in deinem Compose, daher service-name "ollama"
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.1:latest
+
+      # wo die DBs im Container liegen
+      - DBS_ROOT=/data
+
+      # Limits (Sicherheit + Performance)
+      - MAX_ROWS_DEFAULT=50
+      - MAX_ROWS_HARD=500
+
+      # optional: schema-cache (sekunden)
+      - SCHEMA_CACHE_SECONDS=600
+
+      # API Key für Open WebUI Connection (optional, aber gut)
+      - PIPELINES_API_KEY=pipelines123
+    restart: unless-stopped
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080"
+    volumes:
+      - open-webui:/app/backend/data
+    environment:
+      # Wenn du Ollama lokal nutzt:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      - ollama
+      - pipelines
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+volumes:
+  open-webui:
+  ollama:

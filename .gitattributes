@@ -1,0 +1,5 @@
+*.sqlite binary
+*.db binary
+*.sqlite3 binary
+*-wal binary
+*-shm binary
