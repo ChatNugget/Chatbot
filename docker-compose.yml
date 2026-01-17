@@ -31,14 +31,14 @@ services:
     restart: unless-stopped
 
   openwebui:
-    image: ghcr.io/open-webui/open-webui:main
+    build: ./openwebui-custom
     ports:
       - "3000:8080"
     volumes:
       - open-webui:/app/backend/data
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      - # OpenAI-kompatibler Provider -> dein Pipelines-Server
+      # OpenAI-kompatibler Provider -> dein Pipelines-Server
       - OPENAI_API_BASE_URL=http://pipelines:9099/v1
       - OPENAI_API_KEY=${PIPELINES_API_KEY}
       # Admin automatisch anlegen (nur beim allerersten Start, wenn noch keine User existieren)
