@@ -1,4 +1,4 @@
-# Open WebUI + Ollama + Pipelines + SQLite DBs
+g# Open WebUI + Ollama + Pipelines + SQLite DBs
 
 ## Voraussetzungen
 - Docker Desktop installiert und gestartet (Windows)
