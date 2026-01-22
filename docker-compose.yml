@@ -9,24 +9,45 @@ services:
       - "9099:9099"
     volumes:
       - ./pipelines:/app/pipelines
-      # gleiche DBs wie bei sqlite-tools, read-only
       - ./dbs:/data:ro
     environment:
-      # Ollama läuft in deinem Compose, daher service-name "ollama"
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=llama3.1:latest
+      - OLLAMA_KEEP_ALIVE=30m
+
       - TIMEOUT_S=600
-      # wo die DBs im Container liegen
       - DBS_ROOT=/data
 
-      # Limits (Sicherheit + Performance)
       - MAX_ROWS_DEFAULT=50
       - MAX_ROWS_HARD=500
+      - CACHE_SECONDS=3600
 
-      # optional: schema-cache (sekunden)
-      - SCHEMA_CACHE_SECONDS=600
+      # Fast routing defaults (no LLM router)
+      - ALLOW_LLM_ROUTER=0
+      - ROUTER_TOP_K=8
+      - HEURISTIC_MIN_SCORE=2
+      - HEURISTIC_RATIO=1.5
+      - HEURISTIC_MARGIN=2
 
-      # API Key für Open WebUI Connection (optional, aber gut)
+      # Slim schema (big win)
+      - SCHEMA_TOP_TABLES=6
+      - SCHEMA_MAX_COLS=25
+
+      # Keep prompts small
+      - USE_LAST_USER_MESSAGE_ONLY=1
+      - QUESTION_MAX_CHARS=1200
+      - QUESTION_KEEP_LAST_LINES=12
+      - STRIP_PIPELINE_OUTPUT_NOISE=1
+
+      # LLM output cap
+      - SQL_NUM_PREDICT=128
+
+      # Timing
+      - TIMING=1
+      - TIMING_LOG_SQL=0
+      - TIMING_LOG_PROMPT_CHARS=1
+      - TIMING_LOG_OLLAMA_METRICS=1
+
       - PIPELINES_API_KEY=pipelines123
     restart: unless-stopped
 
@@ -38,10 +59,8 @@ services:
       - open-webui:/app/backend/data
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      # OpenAI-kompatibler Provider -> dein Pipelines-Server
       - OPENAI_API_BASE_URL=http://pipelines:9099/v1
       - OPENAI_API_KEY=${PIPELINES_API_KEY}
-      # Admin automatisch anlegen (nur beim allerersten Start, wenn noch keine User existieren)
       - WEBUI_ADMIN_EMAIL=${WEBUI_ADMIN_EMAIL}
       - WEBUI_ADMIN_PASSWORD=${WEBUI_ADMIN_PASSWORD}
       - WEBUI_ADMIN_NAME=${WEBUI_ADMIN_NAME}
