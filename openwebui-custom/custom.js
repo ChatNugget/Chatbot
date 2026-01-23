@@ -46,227 +46,176 @@
         return localStorage.theme || "system";
     }
 
-    function resolveThemeToLightOrDark(theme) {
-        if (theme === "light") return "light";
-        if (theme === "dark") return "dark";
-        return prefersDarkQuery.matches ? "dark" : "light"; // system
+    function resolveTheme(theme) {
+        if (theme === "dark" || theme === "light") return theme;
+        return prefersDarkQuery.matches ? "dark" : "light";
     }
 
     function applyTheme(theme) {
         const el = document.documentElement;
-        el.classList.remove("dark", "light", "her");
+        const resolved = resolveTheme(theme);
 
-        const prefersDark = prefersDarkQuery.matches;
-        if (!theme) theme = "system";
+        el.classList.remove("dark", "light");
+        el.classList.add(resolved);
 
-        if (theme === "system") {
-            el.classList.add(prefersDark ? "dark" : "light");
-            setMetaColor(prefersDark ? "#171717" : "#ffffff");
-        } else if (theme === "light") {
-            el.classList.add("light");
-            setMetaColor("#ffffff");
-        } else {
-            el.classList.add("dark");
-            setMetaColor("#171717");
-        }
+        setMetaColor(resolved === "dark" ? "#0b0b0c" : "#ffffff");
 
         updateStarsTheme();
         updateStarsVisibility();
+    }
+
+    function animateThemeChange(theme) {
+        const resolved = resolveTheme(theme);
+        const overlay = document.createElement("div");
+        Object.assign(overlay.style, {
+            position: "fixed",
+            inset: "0",
+            background: resolved === "dark" ? "#0b0b0c" : "#ffffff",
+            opacity: "0",
+            pointerEvents: "none",
+            zIndex: String(Z_THEME_OVERLAY),
+            transition: `opacity ${THEME_ANIM_DURATION_MS}ms ease`,
+        });
+
+        document.body.appendChild(overlay);
+
+        requestAnimationFrame(() => {
+            overlay.style.opacity = String(THEME_ANIM_PEAK_OPACITY);
+        });
+
+        setTimeout(() => {
+            overlay.style.opacity = "0";
+        }, Math.floor(THEME_ANIM_DURATION_MS * 0.55));
+
+        setTimeout(() => overlay.remove(), THEME_ANIM_DURATION_MS + 60);
+    }
+
+    function setTheme(theme) {
+        localStorage.theme = theme;
+        applyTheme(theme);
+        updateThemeButton(theme);
+        animateThemeChange(theme);
     }
 
     function updateThemeButton(theme) {
         const btn = document.getElementById("owui-theme-btn");
         if (!btn) return;
 
-        const sun = `
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M5 19l1.5-1.5"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>`;
-        const moon = `
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M21 13.2A8.2 8.2 0 1 1 10.8 3 6.5 6.5 0 0 0 21 13.2Z"
-          stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-      </svg>`;
-        const monitor = `
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 5h16v11H4z" stroke="currentColor" stroke-width="2" />
-        <path d="M8 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <path d="M12 16v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>`;
+        // Monitor (System)
+        const svgSystem = `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 5.5C4 4.67 4.67 4 5.5 4h13C19.33 4 20 4.67 20 5.5v9.5c0 .83-.67 1.5-1.5 1.5h-13C4.67 16.5 4 15.83 4 15V5.5Z"
+            stroke="currentColor" stroke-width="2" />
+      <path d="M9 20h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M12 16.5V20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
 
-        if (theme === "light") btn.innerHTML = sun;
-        else if (theme === "dark") btn.innerHTML = moon;
-        else btn.innerHTML = monitor;
+        // Sonne
+        const svgSun = `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M5 19l1.5-1.5"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+
+        // Mond (zentrierter)
+        const svgMoon = `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3a7 7 0 1 0 11.5 11.5Z"
+            stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </svg>`;
+
+        const resolved = resolveTheme(theme);
+        btn.innerHTML = theme === "system" ? svgSystem : (resolved === "dark" ? svgMoon : svgSun);
     }
 
-    function playThemeOverlay(nextResolved) {
-        const overlay = document.createElement("div");
-        Object.assign(overlay.style, {
-            position: "fixed",
-            inset: "0",
-            pointerEvents: "none",
-            zIndex: String(Z_THEME_OVERLAY),
-            opacity: "0",
-            background: nextResolved === "light" ? "#ffffff" : "#000000",
-        });
-        document.documentElement.appendChild(overlay);
-
-        const anim = overlay.animate(
-            [{ opacity: 0 }, { opacity: THEME_ANIM_PEAK_OPACITY }, { opacity: 0 }],
-            { duration: THEME_ANIM_DURATION_MS, easing: "ease-in-out" }
-        );
-        anim.onfinish = () => overlay.remove();
-    }
-
-    function setTheme(theme) {
-        localStorage.theme = theme;
-
-        const resolved = resolveThemeToLightOrDark(theme);
-        playThemeOverlay(resolved);
-
-        window.setTimeout(() => {
-            applyTheme(theme);
-            updateThemeButton(theme);
-        }, Math.floor(THEME_ANIM_DURATION_MS * 0.35));
-    }
-
-    // system changes
-    const systemChangeHandler = () => {
-        if (getTheme() === "system") applyTheme("system");
-    };
-    if (prefersDarkQuery.addEventListener) prefersDarkQuery.addEventListener("change", systemChangeHandler);
-    else if (prefersDarkQuery.addListener) prefersDarkQuery.addListener(systemChangeHandler);
 
     // ---------------------------
-    // STARS BACKGROUND (LOGIN ONLY, ANIMATED)
+    // Stars (login only)
     // ---------------------------
     let starsWrap = null;
     let starsCanvas = null;
     let starsCtx = null;
     let stars = [];
     let starsRunning = false;
-    let starsRaf = 0;
     let lastT = 0;
+    let rafStars = 0;
 
     function isLoginScreen() {
-        // If chat input exists, it's NOT login
-        const chatInput =
-            document.querySelector("textarea") ||
-            document.querySelector('[contenteditable="true"]');
-        if (chatInput) return false;
-
-        // Detect password field even when toggled to text ("show password")
-        const inputs = Array.from(document.querySelectorAll("input"));
-
-        const looksLikePassword = (el) => {
-            const t = (el.getAttribute("type") || "").toLowerCase();
-            const name = (el.getAttribute("name") || "").toLowerCase();
-            const id = (el.getAttribute("id") || "").toLowerCase();
-            const ph = (el.getAttribute("placeholder") || "").toLowerCase();
-            const al = (el.getAttribute("aria-label") || "").toLowerCase();
-            const ac = (el.getAttribute("autocomplete") || "").toLowerCase();
-
-            return (
-                t === "password" ||
-                ac.includes("password") ||
-                name.includes("password") ||
-                id.includes("password") ||
-                ph.includes("password") ||
-                ph.includes("passwort") ||
-                al.includes("password") ||
-                al.includes("passwort")
-            );
-        };
-
-        return inputs.some(looksLikePassword);
-    }
-
-    function updateStarsTheme() {
-        if (!starsWrap) return;
-        const resolved = resolveThemeToLightOrDark(getTheme());
-        starsWrap.style.background =
-            resolved === "dark"
-                ? "radial-gradient(ellipse at bottom, #262626 0%, #000 100%)"
-                : "radial-gradient(ellipse at bottom, #f5f5f5 0%, #fff 100%)";
-    }
-
-    function getStarRGB() {
-        const resolved = resolveThemeToLightOrDark(getTheme());
-        return resolved === "dark" ? [255, 255, 255] : [0, 0, 0];
+        const p = (location.pathname || "").toLowerCase();
+        if (p.includes("signin") || p.includes("sign-in") || p.includes("login") || p.includes("auth")) return true;
+        const pw = document.querySelector('input[type="password"]');
+        return !!(pw && pw.offsetParent !== null);
     }
 
     function ensureStars() {
         if (starsWrap) return;
 
         starsWrap = document.createElement("div");
-        starsWrap.id = "owui-stars-wrap";
         Object.assign(starsWrap.style, {
             position: "fixed",
             inset: "0",
             zIndex: String(Z_STARS),
             pointerEvents: "none",
-            overflow: "hidden",
-            display: "none",
         });
 
         starsCanvas = document.createElement("canvas");
-        starsCanvas.id = "owui-stars";
-        Object.assign(starsCanvas.style, { width: "100%", height: "100%", display: "block" });
+        Object.assign(starsCanvas.style, {
+            width: "100%",
+            height: "100%",
+            display: "block",
+        });
 
         starsWrap.appendChild(starsCanvas);
-        document.documentElement.appendChild(starsWrap);
+        document.body.appendChild(starsWrap);
 
         starsCtx = starsCanvas.getContext("2d", { alpha: true });
-
         resizeStars();
         initStars();
-        updateStarsTheme();
     }
 
     function resizeStars() {
-        if (!starsCanvas) return;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        starsCanvas._dpr = dpr;
+        if (!starsCanvas || !starsCtx) return;
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
         starsCanvas.width = Math.floor(window.innerWidth * dpr);
         starsCanvas.height = Math.floor(window.innerHeight * dpr);
+        starsCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
     function initStars() {
-        if (!starsCanvas) return;
-        const dpr = starsCanvas._dpr || 1;
-        const w = starsCanvas.width;
-        const h = starsCanvas.height;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const count = Math.max(60, Math.floor((w * h) / STARS_DENSITY));
+        stars = Array.from({ length: count }, () => ({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: 0.6 + Math.random() * 1.6,
+            v: STARS_SPEED_MIN + Math.random() * (STARS_SPEED_MAX - STARS_SPEED_MIN),
+            a: 0.25 + Math.random() * 0.75,
+        }));
+    }
 
-        const count = Math.max(90, Math.min(320, Math.floor((w * h) / (dpr * dpr * STARS_DENSITY))));
-
-        stars = new Array(count).fill(0).map(() => {
-            const z = Math.random() * 0.9 + 0.1; // depth factor
-            return {
-                x: Math.random() * w,
-                y: Math.random() * h,
-                r: (Math.random() * 1.1 + 0.4) * dpr * (0.5 + z),
-                v: ((Math.random() * (STARS_SPEED_MAX - STARS_SPEED_MIN) + STARS_SPEED_MIN) * dpr) * (0.3 + z),
-                ph: Math.random() * Math.PI * 2,
-                tw: Math.random() * 1.2 + 0.6,
-                a0: Math.random() * 0.35 + 0.25,
-                aa: Math.random() * 0.45 + 0.25,
-            };
-        });
+    function starsColor() {
+        const theme = resolveTheme(getTheme());
+        return theme === "dark" ? "255,255,255" : "0,0,0";
     }
 
     function startStars() {
         if (starsRunning) return;
         starsRunning = true;
         lastT = performance.now();
-        starsRaf = requestAnimationFrame(tickStars);
+        rafStars = requestAnimationFrame(tickStars);
     }
 
     function stopStars() {
         starsRunning = false;
-        if (starsRaf) cancelAnimationFrame(starsRaf);
-        starsRaf = 0;
+        if (rafStars) cancelAnimationFrame(rafStars);
+        rafStars = 0;
+        if (starsCtx && starsCanvas) starsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    }
+
+    function updateStarsTheme() {
+        // no-op; draw uses starsColor() each frame
     }
 
     function updateStarsVisibility() {
@@ -283,58 +232,46 @@
         const dt = Math.min(0.05, (t - lastT) / 1000);
         lastT = t;
 
-        const ctx = starsCtx;
-        const w = starsCanvas.width;
-        const h = starsCanvas.height;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
 
-        ctx.clearRect(0, 0, w, h);
+        starsCtx.clearRect(0, 0, w, h);
 
-        const [sr, sg, sb] = getStarRGB();
-        const time = t / 1000;
-
-        for (let i = 0; i < stars.length; i++) {
-            const s = stars[i];
-
+        const rgb = starsColor();
+        for (const s of stars) {
             s.y += s.v * dt;
-            if (s.y > h + 10) {
-                s.y = -10;
+            if (s.y > h + 2) {
+                s.y = -2;
                 s.x = Math.random() * w;
             }
-
-            const a = s.a0 + s.aa * (0.5 + 0.5 * Math.sin(time * s.tw + s.ph));
-
-            ctx.beginPath();
-            ctx.fillStyle = `rgba(${sr},${sg},${sb},${a})`;
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            ctx.fill();
+            starsCtx.globalAlpha = s.a;
+            starsCtx.fillStyle = `rgb(${rgb})`;
+            starsCtx.beginPath();
+            starsCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            starsCtx.fill();
         }
+        starsCtx.globalAlpha = 1;
 
-        starsRaf = requestAnimationFrame(tickStars);
+        rafStars = requestAnimationFrame(tickStars);
     }
 
     function setupStarsObservers() {
         const mo = new MutationObserver(() => updateStarsVisibility());
         mo.observe(document.body, { childList: true, subtree: true });
 
-        window.addEventListener("popstate", updateStarsVisibility);
-
-        const _pushState = history.pushState;
-        history.pushState = function () {
-            _pushState.apply(this, arguments);
+        window.addEventListener("resize", () => {
+            resizeStars();
+            initStars();
             updateStarsVisibility();
-        };
-        const _replaceState = history.replaceState;
-        history.replaceState = function () {
-            _replaceState.apply(this, arguments);
-            updateStarsVisibility();
-        };
+        }, { passive: true });
     }
 
     // ---------------------------
     // DOMContentLoaded: inject all
     // ---------------------------
     document.addEventListener("DOMContentLoaded", () => {
-        const root = document.createElement("div");
+        const root =
+            document.createElement("div");
         root.id = "owui-custom-root";
         document.documentElement.appendChild(root);
 
@@ -343,11 +280,42 @@
       html, body, * { cursor: none !important; }
 
       #owui-theme-ui {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        z-index: ${Z_THEME_UI};
+        pointer-events: auto;
+        flex: 0 0 auto;
+      }
+
+      /* Fallback (z.B. Login): floating unten rechts */
+      #owui-theme-ui.owui-floating {
         position: fixed;
         right: 16px;
         bottom: 16px;
-        z-index: ${Z_THEME_UI};
-        pointer-events: auto;
+      }
+
+      /* Composer-Row: Eingabe schrumpft, Theme bleibt rechts daneben */
+      #owui-composer-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        max-width: 100%;
+        flex-wrap: nowrap;
+      }
+
+      #owui-composer-row > #message-input-container {
+        flex: 1 1 auto;
+        min-width: 0 !important;
+        width: auto !important;
+      }
+
+      /* zusätzliche Shrink-Sicherheit */
+      #message-input-container,
+      #chat-input-container,
+      #chat-input {
+        min-width: 0 !important;
       }
 
       #owui-theme-btn {
@@ -373,7 +341,15 @@
       }
 
       #owui-theme-btn:hover { filter: brightness(1.06); }
-      #owui-theme-btn svg { width: 20px; height: 20px; }
+      #owui-theme-btn svg {
+          width: 20px;
+          height: 20px;
+          display: block;
+        }
+        #owui-theme-btn {
+          line-height: 0; /* verhindert vertikales "wackeln" */
+        }
+
     `;
         document.head.appendChild(style);
 
@@ -473,7 +449,56 @@
         });
 
         ui.appendChild(btn);
-        document.documentElement.appendChild(ui);
+        ui.classList.add("owui-floating");
+        document.body.appendChild(ui);
+
+        // Theme-Button: separat rechts neben der gesamten Eingabe-Box (nicht im Send-Cluster)
+        function dockThemeButton() {
+            const mic = document.getElementById("message-input-container");
+            if (!mic || !mic.parentElement) {
+                // Fallback floating
+                ui.classList.add("owui-floating");
+                if (ui.parentElement !== document.body) document.body.appendChild(ui);
+                return;
+            }
+
+            // Wrapper nur einmal anlegen, genau dort wo message-input-container sitzt
+            let row = document.getElementById("owui-composer-row");
+            if (!row || !row.contains(mic)) {
+                row = document.createElement("div");
+                row.id = "owui-composer-row";
+
+                // message-input-container an die Stelle des Wrappers setzen
+                mic.parentElement.insertBefore(row, mic);
+                row.appendChild(mic);
+            }
+
+            // Theme UI als rechter "Side"-Button neben der Box
+            if (ui.parentElement !== row) row.appendChild(ui);
+            ui.classList.remove("owui-floating");
+
+            // optisch: mittig zur Box
+            ui.style.alignSelf = "center";
+        }
+
+        // SPA / Re-renders: regelmäßig nachdocken
+        let dockRaf = 0;
+        const scheduleDock = () => {
+            if (dockRaf) return;
+            dockRaf = requestAnimationFrame(() => {
+                dockRaf = 0;
+                dockThemeButton();
+            });
+        };
+
+        scheduleDock();
+        setTimeout(scheduleDock, 250);
+        setTimeout(scheduleDock, 900);
+
+        const dockObserver = new MutationObserver(scheduleDock);
+        dockObserver.observe(document.body, { childList: true, subtree: true });
+
+        window.addEventListener("resize", scheduleDock, { passive: true });
 
         // Init theme + button
         if (!localStorage.theme) localStorage.theme = "system";
