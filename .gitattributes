@@ -3,3 +3,14 @@
 *.sqlite3 binary
 *-wal binary
 *-shm binary
+
+# Keep shell scripts in LF to avoid /bin/bash^M issues
+*.sh text eol=lf
+
+# PowerShell scripts should be CRLF on Windows
+*.ps1 text eol=crlf
+
+# JSON/YAML typically fine as LF
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
