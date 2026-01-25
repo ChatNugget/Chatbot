@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>DATABASE</ID>
+  <OriginalElement>c8c8e016-ce78-4105-beeb-368b457c01ae</OriginalElement>
+  <nodes>
+    <node x="-3571.4267154285703" y="885.3596489142856">c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.credit_accounts_and_history</node>
+    <node x="-3897.133200457143" y="359.68228571428574">c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.employment_and_income</node>
+    <node x="-3116.13891657143" y="858.0517339428573">c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.credit_and_compliance</node>
+    <node x="-3115.63891657143" y="359.68228571428574">c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.bank_and_transactions</node>
+    <node x="-3481.2092580571443" y="359.68228571428574">c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.expenses_and_assets</node>
+    <node x="-4237.057142857142" y="359.68228571428574">c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.core_record</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.employment_and_income" target="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.core_record" relationship="REFERENCES">
+      <point x="0.0" y="-273.0" />
+      <point x="-3773.133200457143" y="672.9706806857143" />
+      <point x="-4151.057142857142" y="672.9706806857143" />
+      <point x="0.0" y="333.0" />
+    </edge>
+    <edge source="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.expenses_and_assets" target="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.employment_and_income" relationship="REFERENCES">
+      <point x="0.0" y="-213.0" />
+      <point x="-3373.2092580571443" y="655.4158043428569" />
+      <point x="-3773.133200457143" y="655.4158043428569" />
+      <point x="0.0" y="273.0" />
+    </edge>
+    <edge source="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.credit_and_compliance" target="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.bank_and_transactions" relationship="REFERENCES">
+      <point x="0.0" y="-273.0" />
+      <point x="-3001.13891657143" y="1171.6968831999998" />
+      <point x="-3001.13891657143" y="1171.6968831999998" />
+      <point x="0.0" y="201.0" />
+    </edge>
+    <edge source="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.bank_and_transactions" target="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.expenses_and_assets" relationship="REFERENCES">
+      <point x="0.0" y="-201.0" />
+      <point x="-3001.13891657143" y="549.6412324571428" />
+      <point x="-3373.2092580571443" y="549.6412324571428" />
+      <point x="0.0" y="213.0" />
+    </edge>
+    <edge source="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.credit_accounts_and_history" target="c8c8e016-ce78-4105-beeb-368b457c01ae.TABLE:main.credit_and_compliance" relationship="REFERENCES">
+      <point x="0.0" y="-273.0" />
+      <point x="-3432.9267154285703" y="1115.3901641142854" />
+      <point x="-3001.13891657143" y="1115.3901641142854" />
+      <point x="0.0" y="273.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Compact" zoom="0.5859107155101482" showDependencies="false" x="-3273.9326774857145" y="996.6480128" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Columns</Category>
+    <Category>Comments</Category>
+    <Category>Key columns</Category>
+  </Categories>
+</Diagram>
+
