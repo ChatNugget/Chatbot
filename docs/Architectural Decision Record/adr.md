@@ -1,16 +1,22 @@
-# Architecture Decision Records (ADR) — Credit Text-to-SQL (Component-level)
+# Architecture Decision Records (ADR) — Text-to-SQL ChatNugget
 
-> Generated on: 2026-01-28 (Europe/Berlin)  
-> Scope: One ADR per architecture component referenced by the `credit_text2sql` OpenWebUI Pipeline.
+> Updated on: 2026-01-28   
+> Scope: One ADR per architecture component.
 
 ---
 
 ## ADR-0001: OpenWebUI as User Frontend for Text-to-SQL
 
-**Status:** Accepted (2026-01-28)
+**Status:** Accepted 
+
+**Deciders:** Valentin, Jonas
+
+**Date:** 2025-12-19
+
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
 
 ### Context and Problem Statement
-Der Nutzer soll Text-to-SQL über eine Chat-UI nutzen können, ohne ein separates Interface oder eigene Tools. Die Lösung soll als “Model” im UI auswählbar sein.
+Die Lösung soll Nutzeranfragen in natürlicher Sprache als Text-to-SQL direkt über eine Chat-Oberfläche unterstützen, ohne dass dafür ein separates Frontend oder zusätzliche Werkzeuge erforderlich sind. Dafür muss der Text-to-SQL-Workflow nahtlos in die bestehende UI integriert werden, sodass er dort als auswählbares „Model“ bereitsteht und wie andere Modelle bedient werden kann.
 
 ### Decision Drivers
 - UI-first Nutzung (Chat-basierter Zugriff)
@@ -23,300 +29,119 @@ Der Nutzer soll Text-to-SQL über eine Chat-UI nutzen können, ohne ein separate
 3. CLI/Notebook-only
 
 ### Decision Outcome
-**OpenWebUI als Frontend**; die Pipeline liefert eine “Model”-Definition über `pipes()` und verarbeitet Requests über `pipe()`.
+**OpenWebUI als Frontend**, da es den Chat-basierten UI-first Zugriff direkt ermöglicht, keine zusätzliche Frontend-Entwicklung erfordert und Text-to-SQL als auswählbares „Model“ einheitlich neben weiteren Pipelines in derselben Oberfläche bereitstellt. 
 
-### Consequences
-- (+) Sofort nutzbar in bestehender OpenWebUI-UX  
-- (-) Abhängig von OpenWebUI-Pipelines-Konventionen (Loader-Interface)
+### Positiv Consequences
+- Sofort nutzbar in bestehender OpenWebUI-UX
+- Konsistente Chat UI auch für andere LLM-Modelle
 
----
+### Negativ Consequences
+- Abhängig von OpenWebUI-Pipelines-Konventionen (Loader-Interface)
+- Da alles über Chat-Nachrichten läuft, sind SQL-typische Funktionen nur eingeschränkt möglich
 
-## ADR-0002: OpenWebUI Pipelines as Integration Mechanism
+### Pros and Cons of the Options
+**Option 1 - OpenWebUI als Frontend + Pipeline als Model:** Chat-UI in OpenWebUI; Text-to-SQL wird als auswählbares „Model“ über eine Pipeline bereitgestellt.
 
-**Status:** Accepted (2026-01-28)
+Gut weil,
+- die UI sofort verfügbar ist (inkl. Chat-Verlauf, Session-Handling, Model-Auswahl) und dadurch der Implementierungsaufwand stark sinkt.
+- Nutzer eine konsistente UX bekommen und Text-to-SQL im selben Interaktionsmuster wie andere LLM/RAG-Modelle verwenden können.
 
-### Context and Problem Statement
-OpenWebUI erwartet für Pipelines eine `class Pipeline`, die als Plugin geladen wird und Requests in standardisierter Form erhält.
+Schlecht, weil 
+- die UX durch das Chat- und Request/Response-Format begrenzt ist (z.B. kein nativer SQL-Editor, Schema-Browser oder saubere Ergebnis-Pagination).
+- eine enge Abhängigkeit von OpenWebUI/Pipelines entsteht und Änderungen/Debugging stärker von deren Release-Zyklen und Container-Logs abhängen.
 
-### Decision Drivers
-- Kompatibilität mit OpenWebUI Loader
-- “Model”-Konzept via `pipes()`
-- Minimal-invasive Integration
+**Option 2 - Eigenes Web-Frontend:** Eigenentwickelte Web-Oberfläche speziell für Text-to-SQL.
 
-### Considered Options
-1. OpenWebUI Pipelines Plugin (Python-Datei mit `class Pipeline`)  
-2. Separate API + OpenWebUI als Client  
-3. Fork/Custom Build von OpenWebUI
+Gut weil,
+- eine optimale SQL-spezifische UX möglich ist (Editor, Schema-Explorer, Pagination/Export, „Explain SQL“, Query-Historie).
+- du volle Kontrolle über Sicherheits- und Governance-Mechanismen sowie Telemetrie/Tracing und Workflows hast.
 
-### Decision Outcome
-**Pipelines-Plugin** mit `class Pipeline` als Loader Entry-Point.
+Schlecht, weil
+- Entwicklungs- und Betriebsaufwand deutlich höher ist (Frontend-Engineering, Deployment, Monitoring, Auth/SSO, Wartung).
+- die Time-to-Value typischerweise länger ist und frühes Nutzerfeedback später kommt.
 
-### Consequences
-- (+) Schnell integrierbar  
-- (-) Loader-Ladefehler können schwer zu debuggen sein, wenn Imports/Init fehlschlagen
+**Option 3 - CLI/Notebook-only:** Nutzung über Kommandozeile, primär für Entwicklung, Debugging und Evaluation
 
----
+Gut weil,
+- es sehr schnell umzusetzen ist und sich für Prototyping, Tests und reproduzierbare Experimente eignet.
+- Transparenz und Debuggability hoch sind (Logs, Zwischenartefakte, Prompt/SQL-Ausgaben direkt sichtbar und automatisierbar).
 
-## ADR-0003: `credit_text2sql` Pipeline as Adapter Layer
+Schlecht, weil
+- es für Nicht-Techniker unpraktisch ist und die Nutzungshürde hoch bleibt (kein Self-Service-UI).
+- produktrelevante Aspekte (Multi-User, Rollen, Auth, UI-Standards) später trotzdem noch integriert werden müssen.
 
-**Status:** Accepted (2026-01-28)
-
-### Context and Problem Statement
-Die Pipeline soll die UI-Nachrichtenstruktur (`messages[]`) in eine Domain-Funktion (`question`, `role`) überführen und ein eindeutiges “Model” in OpenWebUI registrieren.
-
-### Decision Drivers
-- Klare Trennung: UI-Adapter vs. Domain-Orchestrator
-- Standardisierte Request-Extraktion (`messages`)
-- Kredit-spezifisches “Model” mit fester ID
-
-### Considered Options
-1. Pipeline als Adapter: `pipe()` extrahiert User-Message und ruft Orchestrator  
-2. Domain-Orchestrator direkt an OpenWebUI koppeln (UI-Abhängigkeiten in `src`)  
-3. Mehrstufige Pipeline mit zusätzlicher Routing-Schicht
-
-### Decision Outcome
-Die Pipeline fungiert als **Adapter**:
-- `pipes()` registriert `{id: "credit_text2sql", name: ...}`  
-- `pipe()` extrahiert letzte User-Message und bestimmt `role` (Default/Override)
-
-### Consequences
-- (+) Domain-Code bleibt UI-agnostisch  
-- (+) Eindeutige Modell-Identität in OpenWebUI  
-- (-) Adapter muss OpenWebUI Body-Format stabil unterstützen
 
 ---
 
-## ADR-0004: `src.nl2sql_credit.orchestrator` as Central Text-to-SQL Engine
+## ADR-0002: OpenWebUI Pipelines as Integration Mechanism  
+Status: Accepted
 
-**Status:** Accepted (2026-01-28)
+Deciders: Valentin, Jonas
 
-### Context and Problem Statement
-Die fachliche Text-to-SQL Logik soll nicht in der Pipeline dupliziert werden, sondern in einem wiederverwendbaren Orchestrator-Modul leben.
+Date: 2025-12-19
 
-### Decision Drivers
-- Wiederverwendbarkeit & Testbarkeit
-- Vermeidung von Code-Duplizierung
-- Konfigurierbar über `OrchestratorConfig`
+Technical Story: https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
 
-### Considered Options
-1. Orchestrator in `src` + Pipeline ruft `Orchestrator.run()`  
-2. Alles in Pipeline implementieren  
-3. Externer Service, Pipeline nur Proxy
+## Context and Problem Statement
+Der Text-to-SQL-Workflow soll in OpenWebUI so integriert werden, dass er für Nutzer wie ein auswählbares „Model“ erscheint und standardisiert über das bestehende Request/Response-Schema verarbeitet werden kann. Dafür wird ein Integrationsmechanismus benötigt, der die bestehende Orchestrator-Logik anbinden kann, ohne OpenWebUI selbst zu forken oder eine separate UI/API-Schicht aufzubauen.
 
-### Decision Outcome
-**Orchestrator + OrchestratorConfig** sind der Kern; Pipeline initialisiert ihn und ruft `self._orch.run(question=..., role=...)`.
+## Decision Drivers
+- Nahtlose Integration in OpenWebUI ohne Modifikationen am Core
+- Wiederverwendung der bestehenden Orchestrator-Logik (kein Code-Duplikat)
+- Konfigurierbarkeit und Portabilität (lokal und Docker/Container)
+- Geringer Betriebs- und Integrationsaufwand
 
-### Consequences
-- (+) Saubere Verantwortlichkeiten  
-- (-) Import-/Pfad-Management wird wichtig (siehe sys.path ADR)
+## Considered Options
+- OpenWebUI Pipelines Plugin (Python `class Pipeline`)
+- Separater Microservice (REST API) + OpenWebUI als Client
+- Fork/Custom Build von OpenWebUI (direkte Integration im Core)
 
----
+## Decision Outcome
+OpenWebUI Pipelines als Integrationsmechanismus, da sie eine native Integration in OpenWebUI ermöglichen, ohne den Core zu verändern, die Orchestrator-Logik direkt anbinden und konfigurierbar im Containerbetrieb sowie lokal eingesetzt werden können, bei gleichzeitig geringem Integrations- und Betriebsaufwand.
 
-## ADR-0005: OpenAI-compatible LLM Endpoint (Default: Ollama)
+## Positiv Consequences
+- Native Einbindung in OpenWebUI (Pipeline erscheint als auswählbares „Model“)
+- Geringer Implementierungsaufwand, da kein zusätzlicher Service oder UI-Teil nötig ist
+- Wiederverwendung der bestehenden Domain-Logik durch klare Adapter-Schicht
+- Konfiguration über Env/Valves ohne Rebuild möglich
 
-**Status:** Accepted (2026-01-28)
+## Negativ Consequences
+- Pipeline-Loader ist sensitiv gegenüber Import-/Init-Fehlern (Fehler zeigen sich teils nur indirekt in Logs)
+- Abhängigkeit von Pipelines-Konventionen und deren Update-/Breaking-Change-Risiko
+- Debugging und Observability sind stärker log-getrieben als bei einem dedizierten Service
+- Sauberes Pfad-/Mount-Management im Container erforderlich (Imports/Artefakte)
 
-### Context and Problem Statement
-Der Orchestrator benötigt ein LLM. Ziel: flexibel zwischen OpenAI-kompatiblen Endpoints wechseln, lokal standardmäßig über Ollama.
+## Pros and Cons of the Options
 
-### Decision Drivers
-- Provider-Flexibilität (OpenAI-compatible API)
-- Lokales Default-Setup (Ollama)
-- Konfigurierbarkeit per Env
+### Option 1 - OpenWebUI Pipelines Plugin (Python `class Pipeline`)
+Pipeline wird von OpenWebUI geladen und bietet `pipes()` (Model-Registry) sowie `pipe()` (Request-Verarbeitung).
 
-### Considered Options
-1. OpenAI-kompatibler Endpoint mit `LLM_API_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`  
-2. Hardcodierter Provider  
-3. Mehrere Provider-SDKs parallel
+**Gut weil,**
+- die Integration ohne Änderungen am OpenWebUI-Core möglich ist und das Ergebnis als auswählbares „Model“ direkt im UI verfügbar wird.
+- die bestehende Orchestrator-Logik wiederverwendet werden kann und die Pipeline nur als Adapter fungiert.
 
-### Decision Outcome
-LLM wird über Valves parametrisiert; Default-Base-URL baut auf `OLLAMA_BASE_URL` und `/v1` auf, Model default `llama3.1:latest`.
+**Schlecht, weil**
+- Import-/Initialisierungsfehler das Laden verhindern können und die Ursache oft nur über Container-Logs sichtbar ist.
+- die Lösung an OpenWebUI/Pipelines-Konventionen gekoppelt bleibt und Updates Anpassungen erzwingen können.
 
-### Consequences
-- (+) Austauschbar ohne Codeänderung  
-- (-) Fehler bei falscher Base-URL/Key wirken direkt auf Orchestrator-Verhalten
+### Option 2 - Separater Microservice (REST API) + OpenWebUI als Client
+Text-to-SQL läuft als eigener Service; OpenWebUI ruft ihn über HTTP auf.
 
----
+**Gut weil,**
+- Service-Grenzen klar sind und Observability, Skalierung sowie Deployment unabhängig vom UI erfolgen können.
+- die OpenWebUI-Seite sehr dünn bleibt (nur HTTP-Aufruf), wodurch Python-Import-/Pfadprobleme im UI-Umfeld entfallen.
 
-## ADR-0006: Credit SQLite DB as Primary Data Source
+**Schlecht, weil**
+- zusätzliche Infrastruktur nötig ist (Service, AuthN/Z, Networking, Monitoring), was den Betriebsaufwand erhöht.
+- zusätzliche Latenz und mehr Failure-Modes entstehen (UI ↔ Service ↔ DB/LLM).
 
-**Status:** Accepted (2026-01-28)
+### Option 3 - Fork/Custom Build von OpenWebUI (Core-Integration)
+Direkte Integration in den OpenWebUI-Core, z.B. eigenes Modul/Handler.
 
-### Context and Problem Statement
-Text-to-SQL zielt auf eine konkrete Credit-Datenbank. Die Pipeline muss den DB-Pfad zuverlässig an den Orchestrator geben.
+**Gut weil,**
+- maximale Kontrolle über die Integration und UX möglich ist (Custom Views, spezifische Workflows, bessere Debug-UX).
+- tiefe Integration möglich wird, ohne Pipeline-Loader-Einschränkungen oder Plugin-Mechanik.
 
-### Decision Drivers
-- Deterministische Datenquelle
-- Einfaches Deployment (File-basierte DB)
-- Pfad über Env steuerbar
-
-### Considered Options
-1. SQLite File DB (`dbs/credit/credit.sqlite`)  
-2. Zentrale DB (Postgres/MySQL)  
-3. Mehrere DBs via Routing
-
-### Decision Outcome
-**SQLite File** via `CREDIT_DB_PATH` (Default `dbs/credit/credit.sqlite`).
-
-### Consequences
-- (+) Einfach in Container zu mounten  
-- (-) Pfad/Mount korrekt nötig; sonst Init-/Runtime-Fehler
-
----
-
-## ADR-0007: Schema and Semantics Artifacts as Supporting Knowledge Sources
-
-**Status:** Accepted (2026-01-28)
-
-### Context and Problem Statement
-Text-to-SQL benötigt neben der DB strukturierende Artefakte (Schema-Text, Column-Meanings, KB), um SQL-Generierung robuster zu machen.
-
-### Decision Drivers
-- Bessere Schema-/Spalteninterpretation
-- Erklärbarkeit/Determinismus
-- Versionierbarkeit im Repo
-
-### Considered Options
-1. Externe Artefakte: `credit_schema.txt`, `credit_column_meaning_base.json`, `credit_kb.jsonl`  
-2. Alles live aus DB introspektieren  
-3. Nur DB ohne Zusatzwissen
-
-### Decision Outcome
-Die Pipeline übergibt explizit:
-- `CREDIT_SCHEMA_TXT`  
-- `CREDIT_COLUMN_MEANINGS_JSON`  
-- `CREDIT_KB_JSONL`
-
-### Consequences
-- (+) Mehr Kontext für NL→SQL  
-- (-) Zusätzliche Files müssen synchron gehalten und gemountet werden
-
----
-
-## ADR-0008: RAG Vector Index as Retrieval Layer (JSON Index)
-
-**Status:** Accepted (2026-01-28)
-
-### Context and Problem Statement
-Für Retrieval-gestützte Hinweise (z.B. Mapping/Begriffe/Beispiele) wird ein Vektorindex referenziert, optional auto-build.
-
-### Decision Drivers
-- Retrieval-Unterstützung ohne externe Vektor-DB
-- Portables Artefakt (JSON)
-- Automatischer Aufbau möglich
-
-### Considered Options
-1. JSON Vector Index (`eval/vector_index_credit.json`) + `AUTO_BUILD_INDEX`  
-2. Externe Vector DB (z.B. Chroma/FAISS-Service)  
-3. Kein RAG
-
-### Decision Outcome
-**JSON Index** via `VECTOR_INDEX_PATH` und `AUTO_BUILD_INDEX=True` als Default.
-
-### Consequences
-- (+) Simple, repo-/containerfreundlich  
-- (-) Index-Datei muss verfügbar sein oder Build muss funktionieren
-
----
-
-## ADR-0009: RBAC Policy File for Role-Based Control
-
-**Status:** Accepted (2026-01-28)
-
-### Context and Problem Statement
-Die Pipeline soll über Rollen (student|analyst|admin) steuern können, was erlaubt ist. Dazu wird eine Policy-Datei referenziert.
-
-### Decision Drivers
-- Sicherheits-/Governance-Anforderungen
-- Saubere Trennung Policy vs. Code
-- Role override aus Request möglich
-
-### Considered Options
-1. YAML Policy File (`src/nl2sql_credit/rbac/policy.yaml`)  
-2. Hardcoded Rules  
-3. Externe Policy Engine
-
-### Decision Outcome
-**RBAC Policy YAML** via `RBAC_POLICY_PATH` (Default `src/nl2sql_credit/rbac/policy.yaml`) und `DEFAULT_ROLE`.
-
-### Consequences
-- (+) Policy versionierbar und auditierbar  
-- (-) Pfad muss im Container passen, sonst Initialisierungsfehler möglich
-
----
-
-## ADR-0010: Ontology Mapping File for Semantic Normalization
-
-**Status:** Accepted (2026-01-28)
-
-### Context and Problem Statement
-Zur semantischen Übersetzung/Normalisierung (Begriffe→Schema-Konzepte) wird ein Ontology-Mapping referenziert.
-
-### Decision Drivers
-- Robustere Interpretation von Nutzerbegriffen
-- Trennung Ontologie vs. Code
-- Austauschbarkeit ohne Rebuild
-
-### Considered Options
-1. YAML Mapping (`src/nl2sql_credit/ontology/mapping.yaml`)  
-2. Hardcoded Synonyme  
-3. Nur LLM Prompting ohne Mapping
-
-### Decision Outcome
-**Ontology Mapping YAML** via `ONTOLOGY_MAPPING_PATH` (Default `src/nl2sql_credit/ontology/mapping.yaml`).
-
-### Consequences
-- (+) Explizite Semantik, leichter wartbar  
-- (-) Artefakt muss konsistent und verfügbar sein
-
----
-
-## ADR-0011: Valves (Pydantic + Env Vars) as Configuration Layer
-
-**Status:** Accepted (2026-01-28)
-
-### Context and Problem Statement
-Konfiguration (LLM, Pfade, Verhalten, Limits, Debug) soll im Betrieb änderbar sein, ohne Codeänderung.
-
-### Decision Drivers
-- 12-Factor-Konfigurationsprinzip (Env)
-- Typisierung/Defaults/Validierung
-- Zentrale Bündelung
-
-### Considered Options
-1. `class Valves(BaseModel)` mit `Field(default=os.getenv(...))`  
-2. Reine `os.getenv` Nutzung ohne Struktur  
-3. Config-Datei (YAML/TOML)
-
-### Decision Outcome
-**Pydantic Valves** kapseln alle Settings (LLM, Pfade, Policy/Ontology, Output-Mode, Limits, Debug).
-
-### Consequences
-- (+) Einheitliche Defaults, klare Struktur  
-- (-) Fehlerhafte Env-Werte können früh (Init) zu Exceptions führen
-
----
-
-## ADR-0012: `sys.path` Bootstrapping for `import src...` in Pipelines Context
-
-**Status:** Accepted (2026-01-28)
-
-### Context and Problem Statement
-Die Pipeline läuft teils im Container unter `/app`, teils lokal im Repo. Damit `from src...` funktioniert, muss ein Root mit `src/` in `sys.path`.
-
-### Decision Drivers
-- Kein sofortiges Packaging/Distribution von `src`
-- Funktioniert lokal + Docker
-- Minimale Codeänderungen
-
-### Considered Options
-1. `sys.path` Bootstrapping (Candidate Roots: repo root, `/app`)  
-2. Python-Package bauen und installieren  
-3. Relative Imports / Vendor-Code
-
-### Decision Outcome
-Beim Laden prüft die Pipeline Candidate Roots und fügt den ersten Root mit vorhandenem `src/` in `sys.path` ein.
-
-### Consequences
-- (+) Funktioniert ohne Packaging-Step  
-- (-) Fragiler bei falschen Mounts/Workdir; Fehler äußern sich oft als Loader-Warnung statt klarer Import-Exception
+**Schlecht, weil**
+- Wartung und Updates deutlich schwieriger werden, da der Fork mit Upstream-Änderungen synchron gehalten werden muss.
+- die Einstiegshürde für Deployment steigt (eigene Builds, Releases, CI/CD) und die Lösung langfristig teurer wird.  
