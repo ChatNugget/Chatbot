@@ -28,7 +28,7 @@ Fokussiert ausschließlich den internen Ablauf der Pipeline (NL→SQL, Guardrail
 ## 4) Komplettes Architekturdiagramm (Full Detail)
 Gesamtsicht inkl. detaillierter Pipeline-Teilbereiche und sämtlicher Flüsse/Abhängigkeiten.
 
-![Komplettes Architekturdiagramm](./Komplettes_Architekturdiagramm.png)
+![Komplettes Architekturdiagramm](GesamtSystem_Architekturdiagramm.png)
 
 ---
 
