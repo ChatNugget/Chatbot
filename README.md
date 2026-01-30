@@ -11,25 +11,18 @@ Ziele:
 
 ## Quick Start (CPU)
 
-1) `.env` im Repo-Root anlegen (Beispiel):
-```env
-OPENWEBUI_TAG=main
-WEBUI_PORT=3000
-
-WEBUI_ADMIN_EMAIL=admin@example.com
-WEBUI_ADMIN_PASSWORD=ChangeMe123!
-WEBUI_ADMIN_NAME=Admin
-
-# Muss übereinstimmen zwischen openwebui und pipelines
-PIPELINES_API_KEY=pipelines123
-```
-
-2) Start:
+1) Start:
 ```bash
 docker compose up -d --build
 ```
 
 OpenWebUI ist danach über den Proxy erreichbar (typisch: `http://localhost:${WEBUI_PORT}`).
+
+Anmeldedaten:
+```
+WEBUI_ADMIN_EMAIL=admin@example.com
+WEBUI_ADMIN_PASSWORD=ChangeMe123!
+```
 
 ---
 
