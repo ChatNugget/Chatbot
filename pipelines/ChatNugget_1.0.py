@@ -1,4 +1,3 @@
-import os
 import re
 import json
 import time
@@ -12,6 +11,7 @@ from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
 
+# Pipeline-Klasse: verbindet Routing (DB wählen), Schema/RAG, SQL-Generierung und Ausführung.
 class Pipeline:
     """
     Accuracy-first NL2SQL pipeline for OpenWebUI:
@@ -22,13 +22,16 @@ class Pipeline:
     - Optional: clarify ambiguous questions (multi-turn)
     """
 
+    # 'Valves' enthält alle Konfig-Schalter (können per JSON/ENV überschrieben werden).
     class Valves(BaseModel):
+        # Einstellungen für das lokale LLM (Ollama) und optional extra Modelle fürs Routing/Fixen.
         # Ollama
         OLLAMA_BASE_URL: str = "http://ollama:11434"
         OLLAMA_MODEL: str = "llama3.1:latest"
         ROUTER_MODEL: str = ""  # optional separate model for routing/clarify/fix
         OLLAMA_KEEP_ALIVE: str = ""  # e.g. "30m" (optional; if supported by your Ollama)
 
+        # Wo die SQLite-Dateien liegen und wie lange Caches gültig sind.
         # Data
         DBS_ROOT: str = "/data"
         CACHE_SECONDS: int = 3600
@@ -36,10 +39,12 @@ class Pipeline:
         SQLITE_EXTS: List[str] = [".sqlite", ".db", ".sqlite3"]
         TEMPLATE_SUFFIXES: List[str] = ["_template.sqlite", "_template.db", "_template.sqlite3"]
 
+        # Begrenzt die Ausgabe, damit Antworten nicht zu groß werden.
         # Output limits
         MAX_ROWS_DEFAULT: int = 50
         MAX_ROWS_HARD: int = 500
 
+        # Parameter, wie sicher die DB-Auswahl (Routing) sein muss.
         # Routing
         ROUTER_TOP_K: int = 10
         HEURISTIC_MIN_SCORE: int = 2
@@ -47,12 +52,14 @@ class Pipeline:
         HEURISTIC_MARGIN: int = 2
         ALLOW_LLM_ROUTER: bool = True  # accuracy mode: allow fallback router
 
+        # Wie Nutzerfragen aus dem Chat ausgewählt und gekürzt/gesäubert werden.
         # Question handling
         USE_LAST_USER_MESSAGE_ONLY: bool = False
         QUESTION_MAX_CHARS: int = 1600
         QUESTION_KEEP_LAST_LINES: int = 16
         STRIP_PIPELINE_OUTPUT_NOISE: bool = True
 
+        # Wie viel Schema an das LLM gegeben wird (voll vs. nur relevante Tabellen).
         # Schema strategy
         ENABLE_FULL_SCHEMA_IF_FITS: bool = True
         FULL_SCHEMA_MAX_CHARS: int = 14000  # include full schema when rendered schema <= this
@@ -62,6 +69,7 @@ class Pipeline:
         SCHEMA_ADD_RELATED_TABLES: bool = True
         SCHEMA_MAX_RELATED_TABLES: int = 10
 
+        # Optionale Zusatzinfos: Spalten-Erklärungen und Knowledge-Base-Snippets.
         # Column meanings / KB augmentation
         ENABLE_COLUMN_MEANINGS: bool = True
         COLUMN_MEANINGS_MAX_CHARS: int = 3500
@@ -69,6 +77,7 @@ class Pipeline:
         KB_TOP_K: int = 6
         KB_MAX_CHARS: int = 2500
 
+        # Wie viele SQL-Versuche, wie lang die Antwort sein darf, und Fix-Runden.
         # NL2SQL generation / selection / correction
         N_CANDIDATES: int = 3
         SQL_NUM_PREDICT: int = 256
@@ -78,56 +87,72 @@ class Pipeline:
         MAX_FIX_ITERS: int = 2
         ENABLE_SCHEMA_EXPANSION_ON_FIX: bool = True
 
+        # Steuert Rückfragen, wenn die Frage zu unklar ist.
         # Clarification (multi-turn)
         ENABLE_CLARIFY: bool = True
         CLARIFY_MODEL: str = ""  # if empty uses ROUTER_MODEL or OLLAMA_MODEL
         CLARIFY_NUM_PREDICT: int = 128
 
+        # Sicherheits-Schalter (z.B. nur Read-Only SQL).
         # Safety
         ALLOW_WRITE_SQL: bool = False  # keep read-only by default
 
+        # Timeouts für Netzwerkaufrufe (Ollama).
         # Networking
         TIMEOUT_S: int = 180
 
+        # Performance-Messung und optionale Debug-Logs.
         # Timing / Debug
         TIMING: bool = True
         TIMING_LOG_SQL: bool = False
         TIMING_LOG_PROMPT_CHARS: bool = True
         TIMING_LOG_OLLAMA_METRICS: bool = True
 
+    # Setzt Name, lädt Einstellungen (Valves) und legt interne Caches an.
     def __init__(self):
-        self.name = "20_sqlite_router_nl2sql_accuracy (augment+select+correct + optional clarify)"
+        # Anzeigename der Pipeline (z.B. in Logs/UI).
+        self.name = "ChatNugget 1.0"
 
         # Load valves defaults from:
         # 1) baked defaults (Valves)
         # 2) valves.json next to this pipeline (folder with same basename)
         # 3) env vars override
+        # Start mit Standard-Config aus 'Valves'. Danach werden Defaults/Overrides geladen.
         base = self.Valves().dict()
+        # Optional: lokale valves.json setzt Default-Werte ohne Docker-ENV anfassen zu müssen.
         base.update(self._load_valves_json_defaults())
+        # Optional: Umgebungsvariablen überschreiben die bisherigen Werte (z.B. in docker-compose).
         base.update(self._load_env_overrides(base))
 
         # pipelines runtime expects this key sometimes; pydantic ignores unknown keys by default
+        # OpenWebUI erwartet teils ein 'pipelines'-Feld; '*' heißt: für alle Modelle nutzbar.
         base["pipelines"] = ["*"]
 
+        # Finales, typgeprüftes Config-Objekt (Pydantic) aus allen Quellen.
         self.valves = self.Valves(**base)
 
+        # Interne DB-Liste: db_id → Metadaten (Pfad, Name, Tabellen-Preview).
         # db_id -> info
         self._db_index: Dict[str, Dict[str, Any]] = {}
 
+        # Schema-Caches: vermeiden teure PRAGMA-Abfragen bei jeder Frage.
         # schema caches
         self._schema_map_cache: Dict[str, Dict[str, Any]] = {}      # db_id -> {loaded_at, tables: {tb: [col,...]}}
         self._full_schema_cache: Dict[str, Dict[str, Any]] = {}     # db_id -> {loaded_at, text: str}
 
+        # Routing-Index: Token → mögliche DBs (für schnelle Vorauswahl).
         # routing index
         self._routing_sig_cache: Dict[str, Dict[str, Any]] = {}     # db_id -> {inv: {tok: w}}
         self._inv_index: Dict[str, Dict[str, int]] = {}             # tok -> {db_id: w}
 
+        # Zusatz-Caches: Spalten-Erklärungen und KB-Dokumente werden wiederverwendet.
         # augmentation caches
         self._colmean_cache: Dict[str, Dict[str, Any]] = {}         # db_id -> {loaded_at, data: dict}
         self._kb_cache: Dict[str, Dict[str, Any]] = {}              # db_id -> {loaded_at, docs: list[dict]}
 
     # ---------------- Lifecycle ----------------
 
+    # Wird beim Start aufgerufen: findet DBs und baut den Routing-Index.
     async def on_startup(self):
         self._db_index = self._scan_databases()
         print(f"[accuracy-router] found {len(self._db_index)} databases under {self.valves.DBS_ROOT}", flush=True)
@@ -137,21 +162,25 @@ class Pipeline:
         dt = (time.perf_counter() - t0) * 1000.0
         print(f"[accuracy-router] routing index built in {dt:.1f} ms (tokens={len(self._inv_index)})", flush=True)
 
+    # Wird beim Beenden aufgerufen (hier ohne Aktion).
     async def on_shutdown(self):
         pass
 
     # ---------------- Timing helpers ----------------
 
+    # Prüft, ob Timing-Logs (Performance-Messung) aktiviert sind.
     def _timing_on(self) -> bool:
         v = str(self.valves.TIMING).strip().lower()
         return v not in ("0", "false", "no", "off", "")
 
+    # Schreibt eine Timing-Zeile als JSON ins Log.
     def _emit_timing(self, rid: str, span: str, ms: float, **meta: Any) -> None:
         payload: Dict[str, Any] = {"rid": rid, "span": span, "ms": round(ms, 2)}
         payload.update(meta)
         print("TIMING " + json.dumps(payload, ensure_ascii=False), flush=True)
 
     @contextmanager
+    # Misst die Dauer eines Code-Blocks und loggt sie (wenn Timing aktiv ist).
     def _span(self, name: str, rid: Optional[str], **meta: Any):
         if not rid or not self._timing_on():
             yield
@@ -164,6 +193,7 @@ class Pipeline:
 
     # ---------------- Config loading ----------------
 
+    # Wandelt verschiedene True/False-Schreibweisen in ein echtes Boolean um.
     def _parse_bool(self, v: Any) -> Optional[bool]:
         if v is None:
             return None
@@ -176,6 +206,7 @@ class Pipeline:
             return False
         return None
 
+    # Lädt Standard-Overrides aus einer lokalen valves.json (wenn vorhanden).
     def _load_valves_json_defaults(self) -> Dict[str, Any]:
         """
         Loads ./pipelines/<basename>/valves.json as defaults (if present).
@@ -196,6 +227,7 @@ class Pipeline:
         except Exception:
             return {}
 
+    # Überschreibt Einstellungen aus Umgebungsvariablen (mit Typ-Konvertierung).
     def _load_env_overrides(self, current: Dict[str, Any]) -> Dict[str, Any]:
         """
         Applies env overrides for keys already known in current dict.
@@ -235,6 +267,7 @@ class Pipeline:
 
     # ---------------- Message selection + sanitize ----------------
 
+    # Wählt die eigentliche Nutzerfrage aus (inkl. Merge nach einer Rückfrage).
     def _pick_question(self, user_message: str, messages: List[dict], rid: Optional[str]) -> str:
         """
         Supports multi-turn clarification:
@@ -300,6 +333,7 @@ class Pipeline:
             )
         return q
 
+    # Bereinigt die Frage: entfernt Noise/Codeblöcke und kürzt auf eine sinnvolle Länge.
     def _sanitize_question(self, q: str, rid: Optional[str]) -> str:
         orig = q or ""
         s = orig
@@ -350,6 +384,7 @@ class Pipeline:
 
     # ---------------- Ollama ----------------
 
+    # Sendet einen Chat-Request an Ollama und gibt die Antwort als Text zurück.
     def _ollama_chat(
             self,
             system: str,
@@ -402,6 +437,7 @@ class Pipeline:
 
         with self._span(span_name, rid, model=model):
             try:
+                # HTTP-Aufruf an Ollama; kann bei Timeout/Netzwerkproblemen fehlschlagen.
                 with urlopen(req, timeout=self.valves.TIMEOUT_S) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
 
@@ -452,16 +488,19 @@ class Pipeline:
 
     # ---------------- Helpers ----------------
 
+    # Macht aus einem Namen eine einfache ID (nur a-z/0-9/_), z.B. für db_id.
     def _slug(self, s: str) -> str:
         s = (s or "").lower().strip()
         s = re.sub(r"[^a-z0-9]+", "_", s)
         s = re.sub(r"_+", "_", s).strip("_")
         return s[:80] if s else "db"
 
+    # Zerlegt Text in Such-Tokens (einfaches Wort-Splitting für Routing/RAG).
     def _tokenize(self, s: str) -> List[str]:
         parts = re.split(r"[^a-zA-Z0-9]+", (s or "").lower())
         return [p for p in parts if len(p) >= 3]
 
+    # Berechnet eine grobe Relevanz zwischen Frage-Tokens und Dokument-Tokens.
     def _soft_bm25_score(self, q_tokens: List[str], doc_tokens: List[str]) -> float:
         """
         Tiny BM25-ish score (no corpus stats). Good enough for reranking schema/KB snippets.
@@ -483,18 +522,21 @@ class Pipeline:
 
     # ---------------- SQLite ----------------
 
+    # Öffnet eine SQLite-DB im Read-Only-Modus (schützt vor Änderungen).
     def _connect_ro(self, db_path: str) -> sqlite3.Connection:
         uri = f"file:{db_path}?mode=ro"
         conn = sqlite3.connect(uri, uri=True, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
 
+    # Liest alle (nicht-internen) Tabellennamen aus der SQLite-DB.
     def _get_tables(self, conn: sqlite3.Connection) -> List[str]:
         cur = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
         )
         return [r[0] for r in cur.fetchall()]
 
+    # Liest Spalteninfos einer Tabelle (Name, Typ, PK, NOT NULL).
     def _get_table_info(self, conn: sqlite3.Connection, table: str) -> List[Dict[str, Any]]:
         cur = conn.execute(f"PRAGMA table_info('{table}')")
         out = []
@@ -510,6 +552,7 @@ class Pipeline:
             )
         return out
 
+    # Liest Foreign-Key-Beziehungen einer Tabelle (Join-Hinweise).
     def _get_foreign_keys(self, conn: sqlite3.Connection, table: str) -> List[Dict[str, Any]]:
         cur = conn.execute(f"PRAGMA foreign_key_list('{table}')")
         out = []
@@ -526,6 +569,7 @@ class Pipeline:
 
     # ---------------- DB Index / Routing ----------------
 
+    # Durchsucht DBS_ROOT nach SQLite-Dateien und baut ein DB-Verzeichnis auf.
     def _scan_databases(self) -> Dict[str, Dict[str, Any]]:
         root = self.valves.DBS_ROOT
         index: Dict[str, Dict[str, Any]] = {}
@@ -563,6 +607,7 @@ class Pipeline:
 
         return dict(sorted(index.items(), key=lambda x: x[0]))
 
+    # Baut einen Token->DB Index, um Fragen schnell der passenden DB zuzuordnen.
     def _build_routing_index(self) -> None:
         self._inv_index = {}
         self._routing_sig_cache = {}
@@ -599,6 +644,7 @@ class Pipeline:
                 bucket = self._inv_index.setdefault(token, {})
                 bucket[db_id] = max(bucket.get(db_id, 0), int(weight))
 
+    # Vergibt Punkte pro DB anhand der Token-Überschneidung mit der Frage.
     def _score_dbs(self, question: str) -> Dict[str, int]:
         tokens = self._tokenize(question)
         scores: Dict[str, int] = {}
@@ -610,6 +656,7 @@ class Pipeline:
                 scores[db_id] = scores.get(db_id, 0) + int(w)
         return scores
 
+    # Entscheidet, ob der beste Routing-Score deutlich genug ist.
     def _is_confident(self, best: int, second: int) -> bool:
         if best < int(self.valves.HEURISTIC_MIN_SCORE):
             return False
@@ -624,6 +671,7 @@ class Pipeline:
             pass
         return False
 
+    # Wählt die DB: per DB=... Override, sonst heuristisch, sonst optional per LLM.
     def _choose_db(self, question: str, rid: Optional[str]) -> Optional[str]:
         q = (question or "").strip()
 
@@ -667,6 +715,7 @@ class Pipeline:
         top_ids = [db for db, _ in ranked[:top_k]]
         return self._llm_route_fallback(question=q, rid=rid, top_ids=top_ids)
 
+    # Fragt ein LLM, welche DB am besten passt (nur unter den Top-K Kandidaten).
     def _llm_route_fallback(self, question: str, rid: Optional[str], top_ids: List[str]) -> Optional[str]:
         def cand_text(ids: List[str]) -> str:
             lines = []
@@ -714,6 +763,7 @@ class Pipeline:
 
     # ---------------- Sidecars: column meanings / KB ----------------
 
+    # Berechnet Pfade zu Sidecar-Dateien (Spalten-Bedeutungen, Knowledge Base).
     def _sidecar_paths(self, db_id: str) -> Dict[str, str]:
         info = self._db_index.get(db_id) or {}
         d = info.get("dir") or ""
@@ -722,6 +772,7 @@ class Pipeline:
         kb = os.path.join(d, f"{db_id}_kb.jsonl")
         return {"column_meanings": colm, "kb": kb}
 
+    # Lädt Spalten-Bedeutungen aus JSON und cached das Ergebnis.
     def _load_column_meanings(self, db_id: str, rid: Optional[str]) -> Dict[str, Any]:
         now = time.time()
         cached = self._colmean_cache.get(db_id)
@@ -745,6 +796,7 @@ class Pipeline:
             self._emit_timing(rid, "colmean_loaded", 0.0, db_id=db_id, keys=len(data))
         return data
 
+    # Lädt Knowledge-Base-Dokumente aus JSONL und cached das Ergebnis.
     def _load_kb(self, db_id: str, rid: Optional[str]) -> List[Dict[str, Any]]:
         now = time.time()
         cached = self._kb_cache.get(db_id)
@@ -775,6 +827,7 @@ class Pipeline:
             self._emit_timing(rid, "kb_loaded", 0.0, db_id=db_id, docs=len(docs))
         return docs
 
+    # Sucht passende KB-Snippets zur Frage und rendert sie kompakt.
     def _retrieve_kb_snippets(self, db_id: str, question: str, rid: Optional[str]) -> str:
         if not self._parse_bool(self.valves.ENABLE_KB_RAG):
             return ""
@@ -823,6 +876,7 @@ class Pipeline:
             self._emit_timing(rid, "kb_retrieval", 0.0, db_id=db_id, picked=len(picked), chars=len(blob))
         return blob
 
+    # Erzeugt eine kurze Liste 'Tabelle.Spalte: Bedeutung' für relevante Tabellen.
     def _render_column_meanings(self, db_id: str, tables: List[str], cols_by_table: Dict[str, List[str]], rid: Optional[str]) -> str:
         if not self._parse_bool(self.valves.ENABLE_COLUMN_MEANINGS):
             return ""
@@ -871,6 +925,7 @@ class Pipeline:
 
     # ---------------- Schema building ----------------
 
+    # Baut/holt eine Tabelle->Spalten Map der DB (mit Cache).
     def _get_schema_map(self, db_id: str, rid: Optional[str]) -> Dict[str, List[str]]:
         now = time.time()
         cached = self._schema_map_cache.get(db_id)
@@ -897,6 +952,7 @@ class Pipeline:
             self._emit_timing(rid, "schema_map_cache_miss", 0.0, db_id=db_id, tables=len(table_map))
         return table_map
 
+    # Rendert das komplette Schema als Text (Tabellen, Spalten, FKs).
     def _render_full_schema(self, db_id: str, rid: Optional[str]) -> str:
         now = time.time()
         cached = self._full_schema_cache.get(db_id)
@@ -937,6 +993,7 @@ class Pipeline:
             self._emit_timing(rid, "full_schema_built", 0.0, db_id=db_id, chars=len(text))
         return text
 
+    # Wählt die wichtigsten Tabellen zur Frage (progressiv + FK-Nachbarn).
     def _pick_tables_progressive(self, db_id: str, question: str, top_n: int, rid: Optional[str]) -> List[str]:
         table_map = self._get_schema_map(db_id, rid)
         qtok = self._tokenize(question)
@@ -1008,6 +1065,7 @@ class Pipeline:
 
         return picked
 
+    # Erzeugt das Schema-Paket für die Frage (full schema oder progressive Auswahl).
     def _render_schema_for_question(self, db_id: str, question: str, top_tables: int, rid: Optional[str]) -> Tuple[str, List[str], Dict[str, List[str]]]:
         """
         Returns: (schema_text, picked_tables, cols_by_table)
@@ -1062,6 +1120,7 @@ class Pipeline:
 
     # ---------------- SQL extraction / validation ----------------
 
+    # Extrahiert SQL aus LLM-Text (z.B. aus ```sql``` Blöcken).
     def _extract_sql(self, text: str) -> str:
         if not text:
             return ""
@@ -1075,6 +1134,7 @@ class Pipeline:
         t = t.rstrip().rstrip(";").strip()
         return t
 
+    # Sicherheitscheck: erlaubt nur SELECT/WITH und verbietet schreibende Befehle.
     def _validate_sql(self, sql: str) -> str:
         s = (sql or "").strip()
         low = s.lower()
@@ -1089,6 +1149,7 @@ class Pipeline:
                 raise ValueError("Nur read-only SQL erlaubt")
         return s
 
+    # Erzwingt ein LIMIT (wenn der User nicht explizit 'alles' will).
     def _enforce_limit(self, sql: str, question: str) -> str:
         ql = (question or "").lower()
         if any(x in ql for x in ["alle", "all rows", "everything", "vollständig", "komplett"]):
@@ -1105,6 +1166,7 @@ class Pipeline:
 
     # ---------------- Clarify (multi-turn) ----------------
 
+    # Fragt optional nach, wenn die Nutzerfrage mehrdeutig ist.
     def _maybe_clarify(self, db_id: str, question: str, schema_hint: str, rid: Optional[str]) -> Optional[str]:
         if not self._parse_bool(self.valves.ENABLE_CLARIFY):
             return None
@@ -1144,6 +1206,7 @@ class Pipeline:
 
     # ---------------- Generation / Selection / Fix ----------------
 
+    # Baut System- und User-Prompt für NL2SQL aus Schema/KB/Frage zusammen.
     def _nl2sql_prompt(self, schema: str, colmean: str, kb: str, question: str) -> Tuple[str, str]:
         system = (
             "Du erzeugst NUR syntaktisch korrektes SQLite-SQL.\n"
@@ -1166,6 +1229,7 @@ class Pipeline:
         user = "\n\n".join(parts)
         return system, user
 
+    # Lässt das LLM mehrere SQL-Kandidaten erzeugen und normalisiert/prüft sie.
     def _generate_candidates(self, db_id: str, schema: str, colmean: str, kb: str, question: str, rid: Optional[str]) -> List[str]:
         system, user = self._nl2sql_prompt(schema, colmean, kb, question)
         n = max(1, int(self.valves.N_CANDIDATES))
@@ -1204,12 +1268,15 @@ class Pipeline:
             uniq.append(s.strip())
         return uniq[: max(1, n)]
 
+    # Führt eine SQL-Query aus (inkl. EXPLAIN) und liefert ggf. Fehler + Zeilen zurück.
     def _try_execute(self, db_id: str, sql: str, rid: Optional[str]) -> Tuple[bool, str, List[sqlite3.Row]]:
         info = self._db_index[db_id]
         conn = self._connect_ro(info["path"])
         try:
             # quick parse via explain
+            # Schnelltest: prüft, ob SQLite die Query parsen kann (liefert ggf. sofort Fehler).
             conn.execute("EXPLAIN QUERY PLAN " + sql)
+            # Führt die Query aus und holt danach nur begrenzt viele Zeilen.
             cur = conn.execute(sql)
             rows = cur.fetchmany(self.valves.MAX_ROWS_HARD)
             return True, "", rows
@@ -1218,6 +1285,7 @@ class Pipeline:
         finally:
             conn.close()
 
+    # Gibt dem LLM Fehlermeldung + Query und lässt eine korrigierte SQL erzeugen.
     def _fix_sql(
             self,
             db_id: str,
@@ -1270,6 +1338,7 @@ class Pipeline:
 
     # ---------------- Formatting ----------------
 
+    # Formatiert Result-Zeilen als Markdown-Tabelle für die UI.
     def _rows_to_markdown(self, rows: List[sqlite3.Row]) -> str:
         if not rows:
             return "_(No rows)_"
@@ -1281,6 +1350,7 @@ class Pipeline:
             out.append("| " + " | ".join("" if r[c] is None else str(r[c]) for c in cols) + " |")
         return "\n".join(out)
 
+    # Listet alle gefundenen DBs (db_id + Pfad) für den User auf.
     def _list_dbs(self) -> str:
         if not self._db_index:
             self._db_index = self._scan_databases()
@@ -1291,7 +1361,9 @@ class Pipeline:
 
     # ---------------- Main entry ----------------
 
+    # Haupteinstieg: Routing → Schema/RAG → SQL-Generierung → Ausführung → Fix-Loop → Ausgabe.
     def pipe(self, user_message: str, model_id: str, messages: List[dict], body: dict) -> Union[str, Generator, Iterator]:
+        # Request-ID für Logs/Timing (hilft beim Debuggen pro Anfrage).
         rid = uuid.uuid4().hex[:8]
 
         try:
@@ -1309,6 +1381,7 @@ class Pipeline:
                     with self._span("list_dbs", rid):
                         return self._list_dbs()
 
+                # Direktmodus: User liefert SQL selbst; Pipeline führt nur aus.
                 # direct SQL mode: DB=<id> SQL: ...
                 if question.lower().startswith("sql:") or re.search(r"\bsql:\s*", question.lower()):
                     with self._span("direct_sql_mode", rid):
@@ -1323,34 +1396,40 @@ class Pipeline:
                             return f"**DB:** `{db_id}`\n\n**SQL Fehler:** {err}\n\n```sql\n{sql}\n```"
                         return self._format_answer(db_id, sql, rows)
 
+                # DB-Auswahl: findet die passende Datenbank zur Frage.
                 # routing
                 with self._span("route_db", rid):
                     db_id = self._choose_db(question, rid)
                 if not db_id:
                     return "Ich konnte keine passende DB sicher wählen. Tipp: `DB=<db_id> ...` oder schreibe `datenbanken`."
 
+                # Schema holen: entweder komplett oder nur relevante Tabellen/Spalten.
                 # retrieval: schema (full if fits else progressive)
                 top_tables = max(3, int(self.valves.SCHEMA_TOP_TABLES_BASE))
                 with self._span("get_schema_packet", rid, db_id=db_id):
                     schema, picked_tables, cols_by_table = self._render_schema_for_question(db_id, question, top_tables, rid)
 
+                # Optional: kurze Rückfrage, wenn die Frage mehrdeutig ist.
                 # optional clarify
                 clar = self._maybe_clarify(db_id, question, schema_hint=schema, rid=rid)
                 if clar:
                     return f"[[CLARIFY]] {clar}"
 
+                # Optional: holt Zusatzwissen (KB) und Spalten-Bedeutungen dazu.
                 # augmentation
                 with self._span("augment_kb", rid, db_id=db_id):
                     kb = self._retrieve_kb_snippets(db_id, question, rid) if self._parse_bool(self.valves.ENABLE_KB_RAG) else ""
                 with self._span("augment_colmean", rid, db_id=db_id):
                     colmean = self._render_column_meanings(db_id, picked_tables, cols_by_table, rid) if self._parse_bool(self.valves.ENABLE_COLUMN_MEANINGS) else ""
 
+                # LLM erzeugt mehrere SQL-Kandidaten (Selbstkonsistenz).
                 # generate candidates
                 with self._span("generate_candidates", rid, db_id=db_id):
                     candidates = self._generate_candidates(db_id, schema, colmean, kb, question, rid)
                 if not candidates:
                     return "Konnte keine SQL Kandidaten generieren."
 
+                # Testet Kandidaten durch Ausführen und nimmt den ersten, der läuft.
                 # selection: execute candidates
                 best_sql = None
                 best_rows: List[sqlite3.Row] = []
@@ -1370,6 +1449,7 @@ class Pipeline:
                             break
                         best_err = err
 
+                # Wenn nichts läuft: iterativ fixen mit Fehlermeldung + ggf. mehr Schema.
                 # correction loop if needed
                 if best_sql is None:
                     broken = candidates[0]
@@ -1411,6 +1491,7 @@ class Pipeline:
         except Exception as e:
             return f"Error: {e}"
 
+    # Baut die finale Antwort: DB, SQL und Ergebnis-Tabelle.
     def _format_answer(self, db_id: str, sql: str, rows: List[sqlite3.Row]) -> str:
         info = self._db_index[db_id]
         md = self._rows_to_markdown(rows)
