@@ -2,32 +2,70 @@
 
 Dieses Repo betreibt **OpenWebUI** + **OpenWebUI Pipelines** + **Ollama** in Docker, um natürliche Sprache (NL) in **SQLite-Read-Only SQL** (nur `SELECT`/`WITH`) zu übersetzen, die passende Datenbank automatisch zu wählen (Routing) und das Ergebnis als Tabelle zurückzugeben.
 
-Ziele:
+## Ziele
 - **Hohe Success-Rate** (korrekte DB-Wahl + ausführbares SQL + korrektes Ergebnis)
 - **Sicherheit**: Read-only SQL, kein DDL/DML, Auto-LIMIT
-- **Performance**: schnelles CPU-Routing, optional GPU für Ollama (nur wenn möglich, sonst CPU-Fallback)
+- **Performance**: schnelles CPU-Routing, optional GPU für Ollama (wenn verfügbar, sonst CPU)
 
 ---
 
-## Quick Start (CPU)
+## Voraussetzungen (Windows)
 
-1) Start:
-```bash
-docker compose up -d --build
-```
+- **Windows 10/11**
+- **Docker Desktop installiert & gestartet**
+  - Docker Desktop muss **laufen**, bevor du `run.bat` startest
 
-OpenWebUI ist danach über den Proxy erreichbar (typisch: `http://localhost:${WEBUI_PORT}`).
+> Hinweis: Es ist **kein GPU-Check** oder manuelles GPU-Setup erforderlich.
 
-Anmeldedaten:
-```
+---
+
+## Erstinstallation & Start (Windows)
+
+1) **Projekt herunterladen**
+- Per Git:
+  ```bash
+  git clone <REPO-URL>
+  cd <REPO-ORDNER>
+  ```
+- oder als ZIP herunterladen und entpacken
+
+2) **Docker Desktop starten**
+- Stelle sicher, dass Docker Desktop vollständig hochgefahren ist.
+
+3) **Start über `run.bat`**
+- Doppelklick auf `run.bat`  
+  **oder** im Terminal im Projektordner:
+  ```bat
+  .\run.bat
+  ```
+
+OpenWebUI ist danach über den Proxy erreichbar (typisch):
+`http://localhost:${WEBUI_PORT}`
+
+---
+
+## Login (initiale Anmeldedaten)
+
+🚨 **Initiale Admin-Anmeldedaten (für den ersten Login)**
+
+- **E-Mail:** **admin@example.com**
+- **Passwort:** **ChangeMe123!**
+
+✅ **Wichtig:** Bitte das Passwort nach dem ersten Login sofort ändern.
+
+Die Werte kommen typischerweise aus deiner `.env` bzw. den Compose-Variablen:
+
+```env
 WEBUI_ADMIN_EMAIL=admin@example.com
 WEBUI_ADMIN_PASSWORD=ChangeMe123!
-
 ```
 
 ---
 
-## Optional: GPU für Ollama (nur wenn möglich, sonst CPU)
+## Optional: GPU für Ollama (wenn verfügbar, sonst CPU)
+
+> Dieser Abschnitt ist optional. Standardmäßig läuft alles ohne GPU-Setup.  
+> Wenn du GPU nutzen möchtest, kannst du die GPU-Compose-Override nutzen (nur für `ollama`).
 
 ### Dateien
 - `docker-compose.gpu.yml` (GPU nur für `ollama`)
@@ -162,16 +200,6 @@ Start:
 ./start_gpu_auto.sh
 ```
 
-### GPU wirklich genutzt? (Checks)
-- Docker-Zuweisung prüfen:
-```bash
-docker inspect "$(docker compose ps -q ollama)" --format '{{json .HostConfig.DeviceRequests}}'
-```
-- Laufzeitaktivität (NVIDIA):
-```bash
-nvidia-smi
-```
-
 ---
 
 ## Datenbanken & Sidecars
@@ -179,7 +207,7 @@ nvidia-smi
 Die DBs liegen in `dbs/<db_id>/`:
 
 Beispiel:
-```
+```text
 dbs/credit/
   credit.sqlite
   credit_template.sqlite          # wird ignoriert
@@ -248,7 +276,9 @@ Was wir daraus ableiten (praktisch):
 - Guardrails + Execution sind “first class”, damit die Pipeline robust bleibt.
 
 Referenz:
-- https://arxiv.org/abs/2408.07702
+```text
+https://arxiv.org/abs/2408.07702
+```
 
 ### Paper B — “BIRD-INTERACT: Re-imagining Text-to-SQL Evaluation via Lens of Dynamic Interactions” (arXiv:2510.05318v2)
 Kernaussagen (vereinfacht):
@@ -261,7 +291,6 @@ Was wir daraus ableiten (praktisch):
 - Korrektheit sollte **execution-based** geprüft werden, nicht SQL-String-basiert.
 
 Referenz:
-- https://arxiv.org/abs/2510.05318
-
----
-
+```text
+https://arxiv.org/abs/2510.05318
+```
