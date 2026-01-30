@@ -22,6 +22,7 @@ Anmeldedaten:
 ```
 WEBUI_ADMIN_EMAIL=admin@example.com
 WEBUI_ADMIN_PASSWORD=ChangeMe123!
+
 ```
 
 ---
