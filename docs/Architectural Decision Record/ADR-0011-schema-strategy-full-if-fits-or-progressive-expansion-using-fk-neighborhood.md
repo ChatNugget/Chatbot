@@ -1,12 +1,12 @@
 # ADR-0011: Schema Strategy: Full-if-Fits or Progressive Expansion using FK Neighborhood
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Deciders:** Valentin, Jonas
+**Deciders:** Valentin, Jonas, Dennis
 
-**Date:** 2026-01-28
+**Date:** 2026-01-22
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiMGIzODg5ZmQ0MmVlNGU5MmFjZjU1YTdkMjk2MmJhMzgiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 Der Prompt für NL→SQL benötigt ausreichend Schema-Kontext, darf aber das Token-Budget nicht sprengen. Das Diagramm sieht eine Strategie vor: Full-if-fits oder progressive Erweiterung inkl. FK-related Tabellen.

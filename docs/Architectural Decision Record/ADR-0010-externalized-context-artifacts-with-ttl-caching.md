@@ -1,12 +1,12 @@
 # ADR-0010: Externalized Context Artifacts with TTL Caching
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Deciders:** Valentin, Jonas
 
-**Date:** 2026-01-28
+**Date:** 2026-01-17
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiMGIzODg5ZmQ0MmVlNGU5MmFjZjU1YTdkMjk2MmJhMzgiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 Die Pipeline benötigt Schema-Metadaten, Spaltensemantik und Knowledge Base Inhalte (schema.txt, column_meanings.json, kb.jsonl). Diese Artefakte sollen unabhängig vom Code aktualisierbar sein, gleichzeitig aber nicht bei jedem Request neu eingelesen werden.

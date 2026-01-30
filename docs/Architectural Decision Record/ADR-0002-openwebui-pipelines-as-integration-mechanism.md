@@ -4,7 +4,7 @@
 
 **Deciders:** Valentin, Jonas
 
-**Date:** 2025-12-19
+**Date:** 2025-12-31
 
 **Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
 

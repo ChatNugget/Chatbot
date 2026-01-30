@@ -1,10 +1,10 @@
 # ADR-0016: Timing/Telemetry Spans and Debug Traces inside the Pipeline
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Deciders:** Valentin, Jonas
+**Deciders:** Valentin, Nicklas
 
-**Date:** 2026-01-28
+**Date:** 2026-01-24
 
 **Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
 

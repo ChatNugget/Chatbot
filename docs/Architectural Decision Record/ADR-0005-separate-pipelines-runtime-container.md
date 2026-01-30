@@ -1,10 +1,10 @@
 # ADR-0005: Separate Pipelines Runtime Container
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Deciders:** Valentin, Jonas
 
-**Date:** 2026-01-28
+**Date:** 2025-01-05
 
 **Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
 

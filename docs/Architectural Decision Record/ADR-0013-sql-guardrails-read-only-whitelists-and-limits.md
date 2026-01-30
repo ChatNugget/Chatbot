@@ -1,12 +1,12 @@
 # ADR-0013: SQL Guardrails: Read-Only, Whitelists, and Limits
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Deciders:** Valentin, Jonas
+**Deciders:** Valentin
 
-**Date:** 2026-01-28
+**Date:** 2026-01-21
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiMGIzODg5ZmQ0MmVlNGU5MmFjZjU1YTdkMjk2MmJhMzgiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 Da SQL aus natürlicher Sprache generiert wird, muss verhindert werden, dass schädliche oder ressourcenintensive Queries ausgeführt werden (z.B. DROP/UPDATE/DELETE, unbounded scans). Das Diagramm enthält SQL Guardrails.

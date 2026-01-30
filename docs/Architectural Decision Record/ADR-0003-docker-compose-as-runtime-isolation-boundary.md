@@ -2,12 +2,11 @@
 
 **Status:** Proposed
 
-**Deciders:** Valentin, Jonas
+**Deciders:** Valentin, Jonas, Dennis
 
-**Date:** 2026-01-28
+**Date:** 2025-12-31
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
-
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiOTUxNTFiODFhZjA0NGY2ODliNTFiY2Q0NjFkNTk0ZWMiLCJwIjoiaiJ9
 ## Context and Problem Statement
 Die Lösung besteht aus mehreren Komponenten (Reverse Proxy, UI, Pipeline/Orchestrator, LLM-Runtime, Dateien für Kontext/DB). Für Entwicklung, Demo und reproduzierbare Deployments wird ein einheitlicher Ausführungs- und Netzwerkrahmen benötigt.
 

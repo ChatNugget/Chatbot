@@ -1,12 +1,12 @@
 # ADR-0006: Host-Mounted SQLite DBs and Context Files
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Deciders:** Valentin, Jonas
+**Deciders:** Valentin, Dennis
 
-**Date:** 2026-01-28
+**Date:** 2025-01-05
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiN2ZmMjA3ZWE4NjVhNDlkZjkyMWE2Mjg2NjUxZWI5YTIiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 Die Pipeline benötigt Zugriff auf mehrere SQLite-Dateien (dbs/*/*.sqlite) sowie zusätzliche Kontextartefakte (schema.txt, column_meanings.json, kb.jsonl). Es ist zu entscheiden, wie diese Daten dem Runtime-System bereitgestellt werden.

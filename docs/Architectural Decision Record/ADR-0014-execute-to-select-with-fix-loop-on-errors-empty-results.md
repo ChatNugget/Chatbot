@@ -1,12 +1,12 @@
 # ADR-0014: Execute-to-Select with Fix Loop on Errors/Empty Results
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Deciders:** Valentin, Jonas
 
-**Date:** 2026-01-28
+**Date:** 2026-01-21
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiMGIzODg5ZmQ0MmVlNGU5MmFjZjU1YTdkMjk2MmJhMzgiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 Nach SQL-Generierung ist unklar, welcher Kandidat korrekt ist. Das Diagramm sieht vor, Kandidaten auszuführen, bis einer funktioniert (Execute-to-Select). Bei Fehlern oder leeren Ergebnissen wird ein Fix-Loop mit Error-Feedback gestartet.

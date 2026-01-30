@@ -1,10 +1,10 @@
 # ADR-0008: Multi-Mode Command Parser for Chat Messages
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Deciders:** Valentin, Jonas
 
-**Date:** 2026-01-28
+**Date:** 2026-01-17
 
 **Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
 

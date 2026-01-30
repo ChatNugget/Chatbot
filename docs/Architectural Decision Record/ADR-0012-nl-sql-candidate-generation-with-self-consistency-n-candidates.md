@@ -1,12 +1,12 @@
 # ADR-0012: NL→SQL Candidate Generation with Self-Consistency (N candidates)
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Deciders:** Valentin, Jonas
 
-**Date:** 2026-01-28
+**Date:** 2026-01-21
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiMGIzODg5ZmQ0MmVlNGU5MmFjZjU1YTdkMjk2MmJhMzgiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 LLMs generieren teils instabile SQL-Ausgaben. Das Diagramm sieht vor, mehrere SQL-Kandidaten zu erzeugen (N candidates) und anschließend zu evaluieren.

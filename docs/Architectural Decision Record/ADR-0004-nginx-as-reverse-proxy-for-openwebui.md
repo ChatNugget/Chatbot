@@ -1,10 +1,10 @@
 # ADR-0004: Nginx as Reverse Proxy for OpenWebUI
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Deciders:** Valentin, Jonas
+**Deciders:** Valentin
 
-**Date:** 2026-01-28
+**Date:** 2025-01-23
 
 **Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
 

@@ -1,12 +1,12 @@
 # ADR-0009: DB Routing via Scan/Index and Heuristic Scoring (Optional LLM Fallback)
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Deciders:** Valentin, Jonas
 
-**Date:** 2026-01-28
+**Date:** 2026-01-17
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiMGIzODg5ZmQ0MmVlNGU5MmFjZjU1YTdkMjk2MmJhMzgiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 Es existieren mehrere SQLite-Datenbanken. Vor der NL→SQL-Generierung muss entschieden werden, welche DB(s) für eine User-Frage relevant sind, um Kontext und SQL-Generierung zu fokussieren.

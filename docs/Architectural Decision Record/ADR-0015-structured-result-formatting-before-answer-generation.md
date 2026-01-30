@@ -1,12 +1,12 @@
 # ADR-0015: Structured Result Formatting before Answer Generation
 
-**Status:** Proposed
+**Status:** Accepted
 
-**Deciders:** Valentin, Jonas
+**Deciders:** Valentin, Jonas, Dennis
 
-**Date:** 2026-01-28
+**Date:** 2026-01-21
 
-**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-19?atlOrigin=eyJpIjoiODhjMTJlOGNlZGVkNGZjZGE4ZmQ3OTY5MGZhZTRhMjIiLCJwIjoiaiJ9
+**Technical Story:** https://chatwithyourdata.atlassian.net/browse/KAN-20?atlOrigin=eyJpIjoiMGIzODg5ZmQ0MmVlNGU5MmFjZjU1YTdkMjk2MmJhMzgiLCJwIjoiaiJ9
 
 ## Context and Problem Statement
 SQL-Resultsets können groß, tabellarisch und für Nutzer schwer lesbar sein. Das Diagramm sieht einen Result Formatter vor, der Rows kompakt darstellt, bevor das LLM eine natürliche Antwort formuliert.
